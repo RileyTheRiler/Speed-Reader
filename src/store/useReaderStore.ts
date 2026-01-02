@@ -1,0 +1,72 @@
+import { create } from 'zustand';
+import { Token, tokenize } from '../utils/tokenizer';
+
+interface ReaderState {
+    inputText: string;
+    tokens: Token[];
+    currentIndex: number;
+    isPlaying: boolean;
+    isRecording: boolean;
+    wpm: number;
+    settings: {
+        chunkSize: number;
+        fontSize: number;
+        showRedicle: boolean;
+    };
+
+    // Actions
+    setInputText: (text: string) => void;
+    setTokens: (tokens: Token[]) => void;
+    setWpm: (wpm: number) => void;
+    play: () => void;
+    pause: () => void;
+    reset: () => void;
+    setIsRecording: (isRecording: boolean) => void;
+    setCurrentIndex: (index: number) => void;
+    updateSettings: (settings: Partial<ReaderState['settings']>) => void;
+}
+
+export const useReaderStore = create<ReaderState>((set, get) => ({
+    inputText: '',
+    tokens: [],
+    currentIndex: 0,
+    isPlaying: false,
+    isRecording: false,
+    wpm: 300,
+    settings: {
+        chunkSize: 1,
+        fontSize: 64,
+        showRedicle: true,
+    },
+
+    setInputText: (text) => {
+        const { settings } = get();
+        const tokens = tokenize(text, settings.chunkSize);
+        set({ inputText: text, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
+    },
+
+    setTokens: (tokens) => set({ tokens }),
+
+    setWpm: (wpm) => set({ wpm }),
+
+    play: () => set({ isPlaying: true }),
+
+    pause: () => set({ isPlaying: false }),
+
+    reset: () => set({ currentIndex: 0, isPlaying: false, isRecording: false }),
+
+    setIsRecording: (isRecording) => set({ isRecording }),
+
+    setCurrentIndex: (index) => set({ currentIndex: index }),
+
+    updateSettings: (newSettings) => {
+        set((state) => ({
+            settings: { ...state.settings, ...newSettings }
+        }));
+        // Re-tokenize if chunk size changes
+        const state = get();
+        if (newSettings.chunkSize && newSettings.chunkSize !== state.settings.chunkSize) {
+            state.setInputText(state.inputText);
+        }
+    }
+}));
