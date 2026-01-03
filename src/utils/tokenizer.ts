@@ -22,6 +22,8 @@ const PUNCTUATION_DELAYS: Record<string, number> = {
 };
 
 export const tokenize = (text: string, _chunkSize: number = 1): Token[] => {
+    // Prevent unused variable error while keeping signature
+    void _chunkSize;
     // 1. Basic splitting by whitespace, preserving newlines as separate logic if needed
     // For now, treat newlines as spaces or sentence breaks
     const rawWords = text.trim().split(/\s+/);
@@ -49,7 +51,7 @@ export const tokenize = (text: string, _chunkSize: number = 1): Token[] => {
         // Paragraph breaks (double newline in raw text) might be handled by pre-processing
         // but for simple split, we rely on punctuation.
 
-        const cleanText = word.replace(/^['"\(]+|['"\)]+$/g, '');
+        const cleanText = word.replace(/^['"(]+|['")]+$/g, '');
         // ^ Remove leading/trailing quotes/parens for ORP alignment, 
         // but keep them in 'text' for display.
 
