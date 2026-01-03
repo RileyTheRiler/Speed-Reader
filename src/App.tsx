@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useReaderStore } from './store/useReaderStore';
 import { ReaderCanvas } from './components/ReaderCanvas';
 import { ControlPanel } from './components/ControlPanel';

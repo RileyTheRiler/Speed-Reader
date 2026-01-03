@@ -12,14 +12,10 @@ export const ReaderCanvas: React.FC = () => {
     const {
         tokens,
         currentIndex,
-        isPlaying,
         isRecording,
         wpm,
         settings,
-        setCurrentIndex,
         play,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        pause,
         reset,
         setIsRecording
     } = useReaderStore();
@@ -235,7 +231,6 @@ export const ReaderCanvas: React.FC = () => {
                 previousTimeRef.current = time;
             }
             // Always draw
-            const currentIdx = useReaderStore.getState().currentIndex;
             // We call draw here to ensure it aligns with the animation frame, 
             // but we might need to throttle if React renders are enough.
             // Actually, for Canvas, explicit draw in rAF is better than useEffect if we want 60fps animations.

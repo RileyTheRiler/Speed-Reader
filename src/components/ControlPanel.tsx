@@ -1,6 +1,6 @@
 import React from 'react';
 import { useReaderStore } from '../store/useReaderStore';
-import { Play, Pause, RotateCcw, Settings, Type, Video } from 'lucide-react';
+import { Play, Pause, RotateCcw, Type, Video } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface ControlPanelProps {
@@ -8,7 +8,7 @@ interface ControlPanelProps {
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => {
-    const { isPlaying, play, pause, reset, wpm, setWpm, settings, currentIndex, tokens, isRecording, setIsRecording } = useReaderStore();
+    const { isPlaying, play, pause, reset, wpm, setWpm, currentIndex, tokens, isRecording, setIsRecording } = useReaderStore();
 
     const progress = tokens.length > 0 ? (currentIndex / tokens.length) * 100 : 0;
 

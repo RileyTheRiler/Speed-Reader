@@ -20,7 +20,7 @@ const PUNCTUATION_DELAYS: Record<string, number> = {
     '-': 1.2,
 };
 
-export const tokenize = (text: string, chunkSize: number = 1): Token[] => {
+export const tokenize = (text: string, _chunkSize: number = 1): Token[] => {
     // 1. Basic splitting by whitespace, preserving newlines as separate logic if needed
     // For now, treat newlines as spaces or sentence breaks
     const rawWords = text.trim().split(/\s+/);
