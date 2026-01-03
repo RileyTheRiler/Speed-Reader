@@ -33,14 +33,14 @@ function App() {
         </h1>
       </header>
 
-      <main className="w-full max-w-4xl flex-1 flex flex-col items-center justify-center">
+      <main className="w-full max-w-7xl flex-1 flex flex-col items-center justify-center">
         {isReading ? (
           <div className="w-full animate-fade-in">
             <ReaderCanvas />
             <ControlPanel onToggleInput={handleBackToInput} />
           </div>
         ) : (
-          <div className="w-full max-w-2xl bg-[#1e1e1e] p-8 rounded-2xl border border-gray-800 shadow-2xl space-y-6">
+          <div className="w-full max-w-4xl bg-[#1e1e1e] p-8 rounded-2xl border border-gray-800 shadow-2xl space-y-6">
             <div className="flex items-center gap-2 mb-2">
               <FileText className="text-gray-400" size={20} />
               <h2 className="text-xl font-semibold text-gray-300">Input Text</h2>

@@ -224,6 +224,11 @@ export const ReaderCanvas: React.FC = () => {
                         // state.setCurrentIndex(0); 
                     } else {
                         state.setCurrentIndex(nextIndex);
+
+                        // Pause at end of sentence if enabled
+                        if (state.settings.pauseAtEndOfSentence && currentToken.isSentenceEnd) {
+                            state.pause();
+                        }
                     }
                 }
             } else {

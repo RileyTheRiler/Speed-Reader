@@ -13,6 +13,7 @@ interface ReaderState {
         chunkSize: number;
         fontSize: number;
         showRedicle: boolean;
+        pauseAtEndOfSentence: boolean;
     };
 
     // Actions
@@ -38,6 +39,7 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
         chunkSize: 1,
         fontSize: 64,
         showRedicle: true,
+        pauseAtEndOfSentence: false,
     },
 
     setInputText: (text) => {

@@ -8,12 +8,12 @@ interface ControlPanelProps {
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => {
-    const { isPlaying, play, pause, reset, wpm, setWpm, currentIndex, tokens, isRecording, setIsRecording } = useReaderStore();
+    const { isPlaying, play, pause, reset, wpm, setWpm, currentIndex, tokens, isRecording, setIsRecording, settings, updateSettings } = useReaderStore();
 
     const progress = tokens.length > 0 ? (currentIndex / tokens.length) * 100 : 0;
 
     return (
-        <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto p-6 bg-[#2a2a2a] rounded-xl border border-gray-800 shadow-lg mt-6">
+        <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto p-6 bg-[#2a2a2a] rounded-xl border border-gray-800 shadow-lg mt-6">
 
             {/* Progress Bar */}
             <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
@@ -52,23 +52,43 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
 
             {/* Sliders & Toggles */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#222] p-4 rounded-lg">
-                <div className="space-y-2">
-                    <label className="flex justify-between text-sm text-gray-400">
-                        <span>Speed</span>
-                        <span>{wpm} wpm</span>
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                        <label className="flex justify-between text-sm text-gray-400">
+                            <span>Speed</span>
+                            <span>{wpm} wpm</span>
+                        </label>
+                        <input
+                            type="range"
+                            min="100"
+                            max="1000"
+                            step="10"
+                            value={wpm}
+                            onChange={(e) => setWpm(Number(e.target.value))}
+                            className="w-full accent-red-500 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                        />
+                    </div>
+
+                    <label className="flex items-center justify-between cursor-pointer group">
+                        <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">Pause at Sentence End</span>
+                        <div
+                            className={clsx(
+                                "w-11 h-6 rounded-full transition-colors relative",
+                                settings.pauseAtEndOfSentence ? "bg-red-600" : "bg-gray-600"
+                            )}
+                            onClick={() => updateSettings({ pauseAtEndOfSentence: !settings.pauseAtEndOfSentence })}
+                        >
+                            <div
+                                className={clsx(
+                                    "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm",
+                                    settings.pauseAtEndOfSentence ? "translate-x-5" : "translate-x-0"
+                                )}
+                            />
+                        </div>
                     </label>
-                    <input
-                        type="range"
-                        min="100"
-                        max="1000"
-                        step="10"
-                        value={wpm}
-                        onChange={(e) => setWpm(Number(e.target.value))}
-                        className="w-full accent-red-500 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                    />
                 </div>
 
-                <div className="flex items-center justify-end gap-3">
+                <div className="flex items-center justify-end gap-3 self-end">
                     <button
                         onClick={onToggleInput}
                         disabled={isRecording}

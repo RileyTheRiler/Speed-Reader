@@ -7,6 +7,7 @@ export interface Token {
     orpIndex: number;       // Index of the "Redicle" character
     delayMultiplier: number;// Multiplier for duration (1.0 = base)
     isChunk: boolean;
+    isSentenceEnd: boolean;
 }
 
 const PUNCTUATION_DELAYS: Record<string, number> = {
@@ -34,9 +35,13 @@ export const tokenize = (text: string, _chunkSize: number = 1): Token[] => {
         // Detect punctuation at the end
         const lastChar = word.slice(-1);
         let multiplier = 1.0;
+        let isSentenceEnd = false;
 
         if (PUNCTUATION_DELAYS[lastChar]) {
             multiplier = PUNCTUATION_DELAYS[lastChar];
+            if (['.', '!', '?'].includes(lastChar)) {
+                isSentenceEnd = true;
+            }
         } else if (word.length > 10) {
             multiplier = 1.2; // Slight delay for long words
         }
@@ -58,6 +63,7 @@ export const tokenize = (text: string, _chunkSize: number = 1): Token[] => {
             orpIndex: calculateORP(orpBase),
             delayMultiplier: multiplier,
             isChunk: false,
+            isSentenceEnd,
         };
 
         tokens.push(token);
