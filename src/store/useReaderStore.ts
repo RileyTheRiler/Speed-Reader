@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { Token, tokenize } from '../utils/tokenizer';
+import type { Token } from '../utils/tokenizer';
+import { tokenize } from '../utils/tokenizer';
 
 interface ReaderState {
     inputText: string;
