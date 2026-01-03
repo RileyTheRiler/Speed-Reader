@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useReaderStore } from './store/useReaderStore';
 import { ReaderCanvas } from './components/ReaderCanvas';
 import { ControlPanel } from './components/ControlPanel';
-import { BookOpen, FileText } from 'lucide-react';
 
 function App() {
   const { tokens, setInputText } = useReaderStore();
@@ -23,52 +22,54 @@ function App() {
   const isReading = tokens.length > 0 && !showInput;
 
   return (
-    <div className="min-h-screen w-full bg-[#121212] text-white flex flex-col items-center px-8 py-4 font-sans">
-      <header className="mb-8 mt-4 flex items-center gap-3">
-        <div className="p-2 bg-red-600 rounded-lg">
-          <BookOpen size={24} className="text-white" />
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-200">
-          Hypersonic <span className="text-red-500">Reader</span>
-        </h1>
-      </header>
+    <div className="min-h-screen bg-[#222] text-[#eee] font-sans">
+      {/* Navigation (Placeholder based on user image) */}
+      <nav className="flex justify-center gap-6 py-4 text-gray-400 text-sm">
+        <a href="#" className="hover:text-white transition-colors">Home</a>
+        <a href="#" className="hover:text-white transition-colors">Settings</a>
+        <a href="#" className="hover:text-white transition-colors">About</a>
+        <a href="#" className="hover:text-white transition-colors">Profile</a>
+      </nav>
 
-      <main className="w-full max-w-7xl flex-1 flex flex-col items-center justify-center">
-        {isReading ? (
-          <div className="w-full animate-fade-in">
-            <ReaderCanvas />
-            <ControlPanel onToggleInput={handleBackToInput} />
-          </div>
-        ) : (
-          <div className="w-full max-w-4xl bg-[#1e1e1e] p-8 rounded-2xl border border-gray-800 shadow-2xl space-y-6">
-            <div className="flex items-center gap-2 mb-2">
-              <FileText className="text-gray-400" size={20} />
-              <h2 className="text-xl font-semibold text-gray-300">Input Text</h2>
+      {/* Main Content Area */}
+      <div className="flex items-center justify-center min-h-[calc(100vh-60px)] p-4">
+        <div className="w-full max-w-[800px] bg-[#333] rounded-xl shadow-[0_4px_10px_rgba(0,0,0,0.3)] p-10">
+          <h1 className="text-3xl font-bold text-center mb-8 text-white">
+            Hypersonic Reader
+          </h1>
+
+          {isReading ? (
+            <div className="animate-fade-in space-y-6">
+              <ReaderCanvas />
+              <ControlPanel onToggleInput={handleBackToInput} />
             </div>
+          ) : (
+            <div className="space-y-6">
+              <div>
+                <label className="block mb-2 font-bold text-[#eee]">Input Text</label>
+                <textarea
+                  className="w-full h-[200px] p-4 bg-[#444] border border-[#555] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y font-mono"
+                  placeholder="Paste your text here to begin speed reading..."
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                />
+              </div>
 
-            <textarea
-              className="w-full h-64 bg-[#121212] border border-gray-700 rounded-xl p-4 text-gray-300 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all resize-none font-mono text-sm leading-relaxed"
-              placeholder="Paste your text here to begin speed reading..."
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-            />
-
-            <div className="flex justify-end pt-2">
               <button
                 onClick={handleStart}
                 disabled={!text.trim()}
-                className="px-8 py-3 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all transform active:scale-95 shadow-lg shadow-red-900/20"
+                className="w-full py-4 bg-[#007bff] hover:bg-[#0056b3] disabled:opacity-50 disabled:cursor-not-allowed text-white text-lg font-bold rounded-lg transition-colors shadow-sm"
               >
                 Start Reading
               </button>
             </div>
-          </div>
-        )}
-      </main>
+          )}
 
-      <footer className="mt-12 text-gray-600 text-sm py-6">
-        <p>Optimized for Reduced Saccadic Latency</p>
-      </footer>
+          <p className="text-center mt-8 text-[#888] text-sm">
+            Optimized for Reduced Saccadic Latency
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
