@@ -23,7 +23,7 @@ function App() {
   const isReading = tokens.length > 0 && !showInput;
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white flex flex-col items-center p-4 font-sans">
+    <div className="min-h-screen w-full bg-[#121212] text-white flex flex-col items-center px-8 py-4 font-sans">
       <header className="mb-8 mt-4 flex items-center gap-3">
         <div className="p-2 bg-red-600 rounded-lg">
           <BookOpen size={24} className="text-white" />
