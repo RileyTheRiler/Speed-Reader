@@ -28,6 +28,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                 <div className="flex items-center gap-4">
                     <button
                         onClick={isPlaying ? pause : play}
+                        aria-label={isPlaying ? "Pause" : "Play"}
+                        title={isPlaying ? "Pause (Space)" : "Play (Space)"}
                         className={clsx(
                             "p-4 rounded-full text-white transition-colors shadow-lg",
                             isPlaying ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700"
@@ -38,6 +40,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
 
                     <button
                         onClick={reset}
+                        aria-label="Reset Reader"
+                        title="Reset to beginning"
                         className="p-3 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
                     >
                         <RotateCcw size={20} />
@@ -54,11 +58,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#222] p-4 rounded-lg">
                 <div className="space-y-6">
                     <div className="space-y-2">
-                        <label className="flex justify-between text-sm text-gray-400">
+                        <label htmlFor="speed-control" className="flex justify-between text-sm text-gray-400">
                             <span>Speed</span>
                             <span>{wpm} wpm</span>
                         </label>
                         <input
+                            id="speed-control"
                             type="range"
                             min="100"
                             max="1000"
@@ -69,14 +74,19 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                         />
                     </div>
 
-                    <label className="flex items-center justify-between cursor-pointer group">
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={settings.pauseAtEndOfSentence}
+                        onClick={() => updateSettings({ pauseAtEndOfSentence: !settings.pauseAtEndOfSentence })}
+                        className="flex items-center justify-between cursor-pointer group w-full bg-transparent border-none p-0"
+                    >
                         <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">Pause at Sentence End</span>
                         <div
                             className={clsx(
                                 "w-11 h-6 rounded-full transition-colors relative",
                                 settings.pauseAtEndOfSentence ? "bg-red-600" : "bg-gray-600"
                             )}
-                            onClick={() => updateSettings({ pauseAtEndOfSentence: !settings.pauseAtEndOfSentence })}
                         >
                             <div
                                 className={clsx(
@@ -85,7 +95,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                                 )}
                             />
                         </div>
-                    </label>
+                    </button>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 self-end">
