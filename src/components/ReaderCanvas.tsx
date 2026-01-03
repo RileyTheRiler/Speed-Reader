@@ -9,16 +9,18 @@ export const ReaderCanvas: React.FC = () => {
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
 
-    const {
-        tokens,
-        currentIndex,
-        isRecording,
-        wpm,
-        settings,
-        play,
-        reset,
-        setIsRecording
-    } = useReaderStore();
+    // Performance Optimization:
+    // We select state individually to avoid re-rendering the entire component
+    // on every `currentIndex` change (which happens 8-20 times/sec).
+    const tokens = useReaderStore(state => state.tokens);
+    const isRecording = useReaderStore(state => state.isRecording);
+    const wpm = useReaderStore(state => state.wpm);
+    const settings = useReaderStore(state => state.settings);
+
+    // Stable actions
+    const play = useReaderStore(state => state.play);
+    const reset = useReaderStore(state => state.reset);
+    const setIsRecording = useReaderStore(state => state.setIsRecording);
 
     // Start Recording Helper
     const startRecording = useCallback(() => {
@@ -235,19 +237,7 @@ export const ReaderCanvas: React.FC = () => {
                 accumulatorRef.current = 0;
                 previousTimeRef.current = time;
             }
-            // Always draw
-            // We call draw here to ensure it aligns with the animation frame, 
-            // but we might need to throttle if React renders are enough.
-            // Actually, for Canvas, explicit draw in rAF is better than useEffect if we want 60fps animations.
-            // But since our `draw` depends on React State `currentIndex`, let's just let the `useEffect[currentIndex]` trigger the draw
-            // IF we were purely updating state. 
-            // HOWEVER: We want to draw even if state doesn't change (e.g. cursors, or smoother animations). 
-            // Since we are just text flashing, `useEffect` is fine.
-            // But for video export, the browser might throttle `useEffect` if it's tied to React render cycle? 
-            // No, the recorder records the canvas. As long as canvas updates, it's fine.
-            // Safest: Call `draw` explicitly here? 
-            // `draw` uses props trapped in closure. We need fresh props.
-            // For now, let's stick to the React Effect for drawing to avoid desync/closure issues.
+            // Logic handled by subscription now
             requestRef.current = requestAnimationFrame(loop);
         };
         requestRef.current = requestAnimationFrame(loop);
@@ -256,8 +246,18 @@ export const ReaderCanvas: React.FC = () => {
 
     // Trigger Draw on index change
     useEffect(() => {
-        draw(currentIndex);
-    }, [currentIndex, draw]);
+        // Draw initial state
+        draw(useReaderStore.getState().currentIndex);
+
+        // Subscribe to store updates to avoid re-rendering component
+        // This is much more efficient than triggering a React render every 100ms
+        const unsubscribe = useReaderStore.subscribe((state, prevState) => {
+            if (state.currentIndex !== prevState.currentIndex) {
+                draw(state.currentIndex);
+            }
+        });
+        return unsubscribe;
+    }, [draw]);
 
     // Resize Handling
     useEffect(() => {
