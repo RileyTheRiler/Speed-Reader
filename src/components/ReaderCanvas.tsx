@@ -3,21 +3,20 @@ import { useReaderStore } from '../store/useReaderStore';
 
 export const ReaderCanvas: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const progressBarRef = useRef<HTMLDivElement>(null);
     const requestRef = useRef<number>(0);
     const previousTimeRef = useRef<number>(0);
     const accumulatorRef = useRef<number>(0);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
 
-    const {
-        tokens,
-        currentIndex,
-        isRecording,
-        settings,
-        play,
-        reset,
-        setIsRecording
-    } = useReaderStore();
+    // Use selectors to avoid re-rendering on every currentIndex change
+    const tokens = useReaderStore(s => s.tokens);
+    const isRecording = useReaderStore(s => s.isRecording);
+    const settings = useReaderStore(s => s.settings);
+    const play = useReaderStore(s => s.play);
+    const reset = useReaderStore(s => s.reset);
+    const setIsRecording = useReaderStore(s => s.setIsRecording);
 
     // Start Recording Helper
     const startRecording = useCallback(() => {
@@ -95,8 +94,7 @@ export const ReaderCanvas: React.FC = () => {
 
 
     // Draw Guide Function
-    // Removed unused 'height' parameter
-    const drawRedicle = (ctx: CanvasRenderingContext2D, centerX: number, centerY: number, width: number, fontSize: number) => {
+    const drawRedicle = useCallback((ctx: CanvasRenderingContext2D, centerX: number, centerY: number, width: number, fontSize: number) => {
         if (!settings.showRedicle) return;
 
         // Context Box
@@ -128,7 +126,7 @@ export const ReaderCanvas: React.FC = () => {
         ctx.moveTo(centerX - crossWidth, centerY + gap + length);
         ctx.lineTo(centerX + crossWidth, centerY + gap + length);
         ctx.stroke();
-    };
+    }, [settings.showRedicle]);
 
     // Drawing Logic
     const draw = useCallback((tokenIndex: number) => {
@@ -190,7 +188,7 @@ export const ReaderCanvas: React.FC = () => {
         ctx.fillStyle = settings.textColor;
         ctx.fillText(postRedicle, startX + preWidth + redicleWidth, centerY);
 
-    }, [tokens, settings]); // Removed wpm form dependencies as it is not used in draw anymore
+    }, [tokens, settings, drawRedicle]);
 
     // Animation Loop
     useEffect(() => {
@@ -240,10 +238,28 @@ export const ReaderCanvas: React.FC = () => {
         return () => cancelAnimationFrame(requestRef.current);
     }, []);
 
-    // Trigger Draw on index change
+    // Subscribe to store changes for rendering (bypassing React re-renders for frequent updates)
     useEffect(() => {
-        draw(currentIndex);
-    }, [currentIndex, draw]);
+        // Initial draw
+        const currentState = useReaderStore.getState();
+        draw(currentState.currentIndex);
+        if (progressBarRef.current && currentState.tokens.length > 0) {
+            const progress = (currentState.currentIndex / currentState.tokens.length) * 100;
+            progressBarRef.current.style.width = `${progress}%`;
+        }
+
+        const unsub = useReaderStore.subscribe((state, prevState) => {
+            // Only draw if index changed
+            if (state.currentIndex !== prevState.currentIndex) {
+                draw(state.currentIndex);
+                if (progressBarRef.current && state.tokens.length > 0) {
+                    const progress = (state.currentIndex / state.tokens.length) * 100;
+                    progressBarRef.current.style.width = `${progress}%`;
+                }
+            }
+        });
+        return unsub;
+    }, [draw, tokens.length]); // Re-subscribe if draw function changes (which depends on settings/tokens)
 
     // Resize Handling
     useEffect(() => {
@@ -263,10 +279,7 @@ export const ReaderCanvas: React.FC = () => {
         resize(); // Initial
 
         return () => window.removeEventListener('resize', resize);
-    }, [draw, settings.aspectRatio]); // Add aspect ratio to dependency to re-trigger
-
-    // Progress Calculation
-    const progress = tokens.length > 0 ? (currentIndex / tokens.length) * 100 : 0;
+    }, [draw, settings.aspectRatio]);
 
     return (
         <div
@@ -290,8 +303,9 @@ export const ReaderCanvas: React.FC = () => {
             {/* Progress Bar Overlay */}
             <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-800/50">
                 <div
+                    ref={progressBarRef}
                     className="h-full bg-blue-500 transition-all duration-100 ease-linear"
-                    style={{ width: `${progress}%` }}
+                    style={{ width: '0%' }}
                 />
             </div>
         </div>
