@@ -22,6 +22,7 @@ const PUNCTUATION_DELAYS: Record<string, number> = {
     '-': 1.2,
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const tokenize = (text: string, _chunkSize: number = 1): Token[] => {
     // 1. Basic splitting by whitespace, preserving newlines as separate logic if needed
     // For now, treat newlines as spaces or sentence breaks
@@ -50,6 +51,7 @@ export const tokenize = (text: string, _chunkSize: number = 1): Token[] => {
         // Paragraph breaks (double newline in raw text) might be handled by pre-processing
         // but for simple split, we rely on punctuation.
 
+        // eslint-disable-next-line no-useless-escape
         const cleanText = word.replace(/^['"\(]+|['"\)]+$/g, '');
         // ^ Remove leading/trailing quotes/parens for ORP alignment, 
         // but keep them in 'text' for display.
