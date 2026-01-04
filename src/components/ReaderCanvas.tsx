@@ -13,7 +13,6 @@ export const ReaderCanvas: React.FC = () => {
         tokens,
         currentIndex,
         isRecording,
-        wpm,
         settings,
         play,
         reset,
@@ -95,6 +94,42 @@ export const ReaderCanvas: React.FC = () => {
     }, [isRecording, reset, play, startRecording]);
 
 
+    // Draw Guide Function
+    // Removed unused 'height' parameter
+    const drawRedicle = (ctx: CanvasRenderingContext2D, centerX: number, centerY: number, width: number, fontSize: number) => {
+        if (!settings.showRedicle) return;
+
+        // Context Box
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        const boxHeight = fontSize * 3;
+        ctx.fillRect(0, centerY - (boxHeight / 2), width, boxHeight);
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#333'; // Slightly lighter than black/gray for visibility
+
+        const gap = 35;
+        const length = 25;
+        const crossWidth = 20;
+
+        // Top Guide
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY - gap - length);
+        ctx.lineTo(centerX, centerY - gap);
+        // Top Crossbar
+        ctx.moveTo(centerX - crossWidth, centerY - gap - length);
+        ctx.lineTo(centerX + crossWidth, centerY - gap - length);
+        ctx.stroke();
+
+        // Bottom Guide
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY + gap);
+        ctx.lineTo(centerX, centerY + gap + length);
+        // Bottom Crossbar
+        ctx.moveTo(centerX - crossWidth, centerY + gap + length);
+        ctx.lineTo(centerX + crossWidth, centerY + gap + length);
+        ctx.stroke();
+    };
+
     // Drawing Logic
     const draw = useCallback((tokenIndex: number) => {
         const canvas = canvasRef.current;
@@ -103,35 +138,13 @@ export const ReaderCanvas: React.FC = () => {
         if (!ctx) return;
 
         // Clear
-        ctx.fillStyle = '#1a1a1a'; // Dark background
+        ctx.fillStyle = settings.backgroundColor; // Dynamic background
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw Guides (Redicle)
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
 
-        if (settings.showRedicle) {
-            // Top marker
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY - 60);
-            ctx.lineTo(centerX, centerY - 35);
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = '#222';
-            ctx.stroke();
-
-            // Bottom marker
-            ctx.beginPath();
-            ctx.moveTo(centerX, centerY + 35);
-            ctx.lineTo(centerX, centerY + 60);
-            ctx.stroke();
-
-            // Center thin line (optional, maybe too distracting)
-            // ctx.globalAlpha = 0.1;
-            // ctx.moveTo(centerX, 0);
-            // ctx.lineTo(centerX, canvas.height);
-            // ctx.stroke();
-            // ctx.globalAlpha = 1.0;
-        }
+        drawRedicle(ctx, centerX, centerY, canvas.width, settings.fontSize);
 
         const token = tokens[tokenIndex];
 
@@ -145,12 +158,6 @@ export const ReaderCanvas: React.FC = () => {
             const msg = tokenIndex >= tokens.length && tokens.length > 0 ? "Doubled." : "Ready";
             const width = ctx.measureText(msg).width;
             ctx.fillText(msg, centerX - (width / 2), centerY);
-
-            // Draw WPM Watermark
-            ctx.font = '16px Inter, sans-serif';
-            ctx.fillStyle = '#333';
-            ctx.textAlign = 'right';
-            ctx.fillText(`${wpm} wpm`, canvas.width - 20, canvas.height - 20);
             return;
         }
 
@@ -172,24 +179,18 @@ export const ReaderCanvas: React.FC = () => {
         const startX = centerX - preWidth - (redicleWidth / 2);
 
         // Draw Left
-        ctx.fillStyle = '#e5e5e5';
+        ctx.fillStyle = settings.textColor;
         ctx.fillText(preRedicle, startX, centerY);
 
         // Draw Redicle
-        ctx.fillStyle = '#ff4444';
+        ctx.fillStyle = settings.highlightColor;
         ctx.fillText(redicleChar, startX + preWidth, centerY);
 
         // Draw Right
-        ctx.fillStyle = '#e5e5e5';
+        ctx.fillStyle = settings.textColor;
         ctx.fillText(postRedicle, startX + preWidth + redicleWidth, centerY);
 
-        // Watermark (bottom right)
-        ctx.font = 'italic 20px Inter, sans-serif';
-        ctx.fillStyle = '#333';
-        ctx.textAlign = 'right';
-        ctx.fillText(`${wpm} wpm`, canvas.width - 20, canvas.height - 20);
-
-    }, [tokens, settings, wpm]);
+    }, [tokens, settings]); // Removed wpm form dependencies as it is not used in draw anymore
 
     // Animation Loop
     useEffect(() => {
@@ -220,8 +221,6 @@ export const ReaderCanvas: React.FC = () => {
                             // Stop recording logic via state change
                             state.setIsRecording(false);
                         }
-                        // Optional: Reset to 0? Or stay at end?
-                        // state.setCurrentIndex(0); 
                     } else {
                         state.setCurrentIndex(nextIndex);
 
@@ -235,19 +234,6 @@ export const ReaderCanvas: React.FC = () => {
                 accumulatorRef.current = 0;
                 previousTimeRef.current = time;
             }
-            // Always draw
-            // We call draw here to ensure it aligns with the animation frame, 
-            // but we might need to throttle if React renders are enough.
-            // Actually, for Canvas, explicit draw in rAF is better than useEffect if we want 60fps animations.
-            // But since our `draw` depends on React State `currentIndex`, let's just let the `useEffect[currentIndex]` trigger the draw
-            // IF we were purely updating state. 
-            // HOWEVER: We want to draw even if state doesn't change (e.g. cursors, or smoother animations). 
-            // Since we are just text flashing, `useEffect` is fine.
-            // But for video export, the browser might throttle `useEffect` if it's tied to React render cycle? 
-            // No, the recorder records the canvas. As long as canvas updates, it's fine.
-            // Safest: Call `draw` explicitly here? 
-            // `draw` uses props trapped in closure. We need fresh props.
-            // For now, let's stick to the React Effect for drawing to avoid desync/closure issues.
             requestRef.current = requestAnimationFrame(loop);
         };
         requestRef.current = requestAnimationFrame(loop);
@@ -277,20 +263,37 @@ export const ReaderCanvas: React.FC = () => {
         resize(); // Initial
 
         return () => window.removeEventListener('resize', resize);
-    }, [draw]);
+    }, [draw, settings.aspectRatio]); // Add aspect ratio to dependency to re-trigger
+
+    // Progress Calculation
+    const progress = tokens.length > 0 ? (currentIndex / tokens.length) * 100 : 0;
 
     return (
-        <div className="w-full aspect-video bg-[#1a1a1a] rounded-lg overflow-hidden shadow-2xl border border-gray-800 relative group">
+        <div
+            className={`w-full bg-[#1a1a1a] rounded-lg overflow-hidden shadow-2xl border border-gray-800 relative group transition-all duration-300 mx-auto ${settings.aspectRatio === '9:16' ? 'max-w-[400px] aspect-[9/16]' : 'aspect-video'}`}
+        >
+            <div className="absolute top-0 left-0 px-2 py-1 bg-black/50 text-[10px] text-gray-500 font-mono pointer-events-none uppercase tracking-wider z-10">
+                Preview
+            </div>
+
             <canvas
                 ref={canvasRef}
                 className="w-full h-full block"
             />
             {isRecording && (
-                <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1 bg-red-900/80 rounded-full animate-pulse">
+                <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1 bg-red-900/80 rounded-full animate-pulse z-10">
                     <div className="w-2 h-2 bg-red-500 rounded-full" />
                     <span className="text-xs font-mono text-red-100">REC</span>
                 </div>
             )}
+
+            {/* Progress Bar Overlay */}
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-800/50">
+                <div
+                    className="h-full bg-blue-500 transition-all duration-100 ease-linear"
+                    style={{ width: `${progress}%` }}
+                />
+            </div>
         </div>
     );
 };

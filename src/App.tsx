@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useReaderStore } from './store/useReaderStore';
 import { ReaderCanvas } from './components/ReaderCanvas';
 import { ControlPanel } from './components/ControlPanel';
+import { TextPanel } from './components/TextPanel';
+
 
 function App() {
   const { tokens, setInputText } = useReaderStore();
@@ -24,7 +26,7 @@ function App() {
   return (
     <div className="min-h-screen bg-[#222] text-[#eee] font-sans">
       {/* Navigation (Placeholder based on user image) */}
-      <nav className="flex justify-center gap-6 py-4 text-gray-400 text-sm">
+      <nav className="flex justify-center gap-4 md:gap-6 py-4 text-gray-400 text-sm">
         <a href="#" className="hover:text-white transition-colors">Home</a>
         <a href="#" className="hover:text-white transition-colors">Settings</a>
         <a href="#" className="hover:text-white transition-colors">About</a>
@@ -33,13 +35,21 @@ function App() {
 
       {/* Main Content Area */}
       <div className="flex items-center justify-center min-h-[calc(100vh-60px)] p-4">
-        <div className="w-full max-w-[800px] bg-[#333] rounded-xl shadow-[0_4px_10px_rgba(0,0,0,0.3)] p-10">
-          <h1 className="text-3xl font-bold text-center mb-8 text-white">
+        <div className="w-full max-w-[800px] bg-[#333] rounded-xl shadow-[0_4px_10px_rgba(0,0,0,0.3)] p-6 md:p-10">
+          <h1 className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8 text-white">
             Hypersonic Reader
           </h1>
 
           {isReading ? (
             <div className="animate-fade-in space-y-6">
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={useReaderStore.getState().toggleSidePanel}
+                  className="text-sm text-blue-400 hover:text-blue-300 underline"
+                >
+                  {useReaderStore.getState().isSidePanelOpen ? 'Hide Text Panel' : 'Show Text Panel'}
+                </button>
+              </div>
               <ReaderCanvas />
               <ControlPanel onToggleInput={handleBackToInput} />
             </div>
@@ -70,6 +80,7 @@ function App() {
           </p>
         </div>
       </div>
+      <TextPanel />
     </div>
   );
 }

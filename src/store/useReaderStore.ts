@@ -14,6 +14,10 @@ interface ReaderState {
         fontSize: number;
         showRedicle: boolean;
         pauseAtEndOfSentence: boolean;
+        backgroundColor: string;
+        textColor: string;
+        highlightColor: string;
+        aspectRatio: '16:9' | '9:16';
     };
 
     // Actions
@@ -26,6 +30,9 @@ interface ReaderState {
     setIsRecording: (isRecording: boolean) => void;
     setCurrentIndex: (index: number) => void;
     updateSettings: (settings: Partial<ReaderState['settings']>) => void;
+
+    isSidePanelOpen: boolean;
+    toggleSidePanel: () => void;
 }
 
 export const useReaderStore = create<ReaderState>((set, get) => ({
@@ -40,6 +47,10 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
         fontSize: 64,
         showRedicle: true,
         pauseAtEndOfSentence: false,
+        backgroundColor: '#1a1a1a',
+        textColor: '#e5e5e5',
+        highlightColor: '#ff4444',
+        aspectRatio: '16:9',
     },
 
     setInputText: (text) => {
@@ -71,5 +82,8 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
         if (newSettings.chunkSize && newSettings.chunkSize !== state.settings.chunkSize) {
             state.setInputText(state.inputText);
         }
-    }
+    },
+
+    isSidePanelOpen: false,
+    toggleSidePanel: () => set((state) => ({ isSidePanelOpen: !state.isSidePanelOpen }))
 }));

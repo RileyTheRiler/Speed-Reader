@@ -8,6 +8,7 @@ export interface Token {
     delayMultiplier: number;// Multiplier for duration (1.0 = base)
     isChunk: boolean;
     isSentenceEnd: boolean;
+    hasSpaceAfter: boolean;
 }
 
 const PUNCTUATION_DELAYS: Record<string, number> = {
@@ -64,6 +65,7 @@ export const tokenize = (text: string, _chunkSize: number = 1): Token[] => {
             delayMultiplier: multiplier,
             isChunk: false,
             isSentenceEnd,
+            hasSpaceAfter: true, // simplified for now
         };
 
         tokens.push(token);
