@@ -30,6 +30,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                         onClick={reset}
                         className="p-3 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition-colors"
                         title="Reset to Start"
+                        aria-label="Reset to Start"
                     >
                         <RotateCcw size={20} />
                     </button>
@@ -43,6 +44,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                             "p-5 rounded-full text-white transition-all shadow-xl hover:scale-105 active:scale-95",
                             isPlaying ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700"
                         )}
+                        aria-label={isPlaying ? "Pause" : "Play"}
                     >
                         {isPlaying ? <Pause size={32} fill="currentColor" /> : <Play size={32} fill="currentColor" className="ml-1" />}
                     </button>
@@ -60,8 +62,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                 <button
                     onClick={() => setWpm(Math.max(100, wpm - 10))}
                     className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-white"
+                    aria-label="Decrease speed"
                 >
-                    <span className="text-xl font-bold">-</span>
+                    <span className="text-xl font-bold" aria-hidden="true">-</span>
                 </button>
 
                 <input
@@ -72,13 +75,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                     value={wpm}
                     onChange={(e) => setWpm(Number(e.target.value))}
                     className="flex-1 accent-blue-500 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                    aria-label="Words per minute"
                 />
 
                 <button
                     onClick={() => setWpm(Math.min(1000, wpm + 10))}
                     className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-white"
+                    aria-label="Increase speed"
                 >
-                    <span className="text-xl font-bold">+</span>
+                    <span className="text-xl font-bold" aria-hidden="true">+</span>
                 </button>
             </div>
 
@@ -110,23 +115,26 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                         </div>
                     </div>
 
-                    <label className="flex items-center justify-between cursor-pointer group">
-                        <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">Pause at Sentence End</span>
-                        <div
+                    <div className="flex items-center justify-between">
+                        <span id="pause-label" className="text-sm text-gray-400">Pause at Sentence End</span>
+                        <button
+                            role="switch"
+                            aria-checked={settings.pauseAtEndOfSentence}
+                            aria-labelledby="pause-label"
+                            onClick={() => updateSettings({ pauseAtEndOfSentence: !settings.pauseAtEndOfSentence })}
                             className={clsx(
-                                "w-11 h-6 rounded-full transition-colors relative",
+                                "w-11 h-6 rounded-full transition-colors relative focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
                                 settings.pauseAtEndOfSentence ? "bg-blue-600" : "bg-gray-600"
                             )}
-                            onClick={() => updateSettings({ pauseAtEndOfSentence: !settings.pauseAtEndOfSentence })}
                         >
-                            <div
+                            <span
                                 className={clsx(
-                                    "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm",
+                                    "block w-4 h-4 bg-white rounded-full transition-transform shadow-sm absolute top-1 left-1",
                                     settings.pauseAtEndOfSentence ? "translate-x-5" : "translate-x-0"
                                 )}
                             />
-                        </div>
-                    </label>
+                        </button>
+                    </div>
 
                     {/* Color Settings */}
                     <div className="space-y-3 pt-4 border-t border-gray-700">
