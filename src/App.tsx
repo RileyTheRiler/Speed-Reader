@@ -3,17 +3,38 @@ import { useReaderStore } from './store/useReaderStore';
 import { ReaderCanvas } from './components/ReaderCanvas';
 import { ControlPanel } from './components/ControlPanel';
 import { TextPanel } from './components/TextPanel';
+import { MAX_INPUT_LENGTH, sanitizeInput } from './utils/security';
 
 
 function App() {
   const { tokens, setInputText } = useReaderStore();
   const [showInput, setShowInput] = useState(true);
   const [text, setText] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const handleStart = () => {
     if (!text.trim()) return;
-    setInputText(text);
+
+    if (text.length > MAX_INPUT_LENGTH) {
+      setError(`Text exceeds maximum limit of ${MAX_INPUT_LENGTH.toLocaleString()} characters.`);
+      return;
+    }
+
+    const sanitized = sanitizeInput(text);
+    setInputText(sanitized);
     setShowInput(false);
+    setError(null);
+  };
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    setText(newText);
+
+    if (newText.length > MAX_INPUT_LENGTH) {
+      setError(`Character limit exceeded (${newText.length}/${MAX_INPUT_LENGTH})`);
+    } else {
+      setError(null);
+    }
   };
 
   const handleBackToInput = () => {
@@ -58,16 +79,28 @@ function App() {
               <div>
                 <label className="block mb-2 font-bold text-[#eee]">Input Text</label>
                 <textarea
-                  className="w-full h-[200px] p-4 bg-[#444] border border-[#555] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y font-mono"
+                  className={`w-full h-[200px] p-4 bg-[#444] border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-1 resize-y font-mono ${
+                    error
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                      : 'border-[#555] focus:border-blue-500 focus:ring-blue-500'
+                  }`}
                   placeholder="Paste your text here to begin speed reading..."
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  onChange={handleTextChange}
                 />
+                <div className="flex justify-between mt-1 text-sm">
+                  <span className={`${error ? 'text-red-400' : 'text-gray-400'}`}>
+                    {error || ' '}
+                  </span>
+                  <span className={`${text.length > MAX_INPUT_LENGTH ? 'text-red-400' : 'text-gray-400'}`}>
+                    {text.length.toLocaleString()} / {MAX_INPUT_LENGTH.toLocaleString()}
+                  </span>
+                </div>
               </div>
 
               <button
                 onClick={handleStart}
-                disabled={!text.trim()}
+                disabled={!text.trim() || text.length > MAX_INPUT_LENGTH}
                 className="w-full py-4 bg-[#007bff] hover:bg-[#0056b3] disabled:opacity-50 disabled:cursor-not-allowed text-white text-lg font-bold rounded-lg transition-colors shadow-sm"
               >
                 Start Reading
