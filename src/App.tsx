@@ -3,6 +3,7 @@ import { useReaderStore } from './store/useReaderStore';
 import { ReaderCanvas } from './components/ReaderCanvas';
 import { ControlPanel } from './components/ControlPanel';
 import { TextPanel } from './components/TextPanel';
+import { MAX_INPUT_LENGTH, sanitizeInput } from './utils/security';
 
 
 function App() {
@@ -12,7 +13,7 @@ function App() {
 
   const handleStart = () => {
     if (!text.trim()) return;
-    setInputText(text);
+    setInputText(sanitizeInput(text));
     setShowInput(false);
   };
 
@@ -56,11 +57,17 @@ function App() {
           ) : (
             <div className="space-y-6">
               <div>
-                <label className="block mb-2 font-bold text-[#eee]">Input Text</label>
+                <label className="flex justify-between mb-2 font-bold text-[#eee]">
+                  <span>Input Text</span>
+                  <span className={`text-xs ${text.length >= MAX_INPUT_LENGTH ? 'text-red-400' : 'text-gray-400'}`}>
+                    {text.length.toLocaleString()} / {MAX_INPUT_LENGTH.toLocaleString()} chars
+                  </span>
+                </label>
                 <textarea
                   className="w-full h-[200px] p-4 bg-[#444] border border-[#555] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y font-mono"
                   placeholder="Paste your text here to begin speed reading..."
                   value={text}
+                  maxLength={MAX_INPUT_LENGTH}
                   onChange={(e) => setText(e.target.value)}
                 />
               </div>
