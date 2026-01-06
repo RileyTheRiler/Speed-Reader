@@ -96,7 +96,7 @@ export const ReaderCanvas: React.FC = () => {
 
     // Draw Guide Function
     // Removed unused 'height' parameter
-    const drawRedicle = (ctx: CanvasRenderingContext2D, centerX: number, centerY: number, width: number, fontSize: number) => {
+    const drawRedicle = useCallback((ctx: CanvasRenderingContext2D, centerX: number, centerY: number, width: number, fontSize: number) => {
         if (!settings.showRedicle) return;
 
         // Context Box
@@ -128,7 +128,7 @@ export const ReaderCanvas: React.FC = () => {
         ctx.moveTo(centerX - crossWidth, centerY + gap + length);
         ctx.lineTo(centerX + crossWidth, centerY + gap + length);
         ctx.stroke();
-    };
+    }, [settings.showRedicle]);
 
     // Drawing Logic
     const draw = useCallback((tokenIndex: number) => {
@@ -190,7 +190,7 @@ export const ReaderCanvas: React.FC = () => {
         ctx.fillStyle = settings.textColor;
         ctx.fillText(postRedicle, startX + preWidth + redicleWidth, centerY);
 
-    }, [tokens, settings]); // Removed wpm form dependencies as it is not used in draw anymore
+    }, [tokens, settings, drawRedicle]); // Removed wpm form dependencies as it is not used in draw anymore
 
     // Animation Loop
     useEffect(() => {
