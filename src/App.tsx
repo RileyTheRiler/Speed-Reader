@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { validateInput, sanitizeInput } from './utils/security';
 import { useReaderStore } from './store/useReaderStore';
 import { ReaderCanvas } from './components/ReaderCanvas';
 import { ControlPanel } from './components/ControlPanel';
@@ -9,11 +10,24 @@ function App() {
   const { tokens, setInputText } = useReaderStore();
   const [showInput, setShowInput] = useState(true);
   const [text, setText] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const handleStart = () => {
-    if (!text.trim()) return;
-    setInputText(text);
+    const validation = validateInput(text);
+    if (!validation.isValid) {
+      setError(validation.error || 'Invalid input');
+      return;
+    }
+
+    const sanitized = sanitizeInput(text);
+    if (!sanitized) {
+      setError('Input contains no valid text');
+      return;
+    }
+
+    setInputText(sanitized);
     setShowInput(false);
+    setError(null);
   };
 
   const handleBackToInput = () => {
@@ -61,8 +75,16 @@ function App() {
                   className="w-full h-[200px] p-4 bg-[#444] border border-[#555] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y font-mono"
                   placeholder="Paste your text here to begin speed reading..."
                   value={text}
-                  onChange={(e) => setText(e.target.value)}
+                  onChange={(e) => {
+                    setText(e.target.value);
+                    if (error) setError(null);
+                  }}
                 />
+                {error && (
+                  <p className="mt-2 text-red-400 text-sm font-semibold animate-pulse">
+                    ⚠️ {error}
+                  </p>
+                )}
               </div>
 
               <button
