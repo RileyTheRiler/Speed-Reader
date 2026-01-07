@@ -28,6 +28,7 @@ export const TextPanel: React.FC = () => {
                 <button
                     onClick={toggleSidePanel}
                     className="text-gray-400 hover:text-white transition-colors p-1"
+                    aria-label="Close text panel"
                 >
                     ✕
                 </button>

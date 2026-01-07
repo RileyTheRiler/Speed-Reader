@@ -23,6 +23,9 @@ function App() {
   // If we have tokens but input view is false, show reader
   const isReading = tokens.length > 0 && !showInput;
 
+  // Access state via hook selector for reactivity
+  const { isSidePanelOpen, toggleSidePanel } = useReaderStore();
+
   return (
     <div className="min-h-screen bg-[#222] text-[#eee] font-sans">
       {/* Navigation (Placeholder based on user image) */}
@@ -44,10 +47,10 @@ function App() {
             <div className="animate-fade-in space-y-6">
               <div className="flex justify-end mb-2">
                 <button
-                  onClick={useReaderStore.getState().toggleSidePanel}
+                  onClick={toggleSidePanel}
                   className="text-sm text-blue-400 hover:text-blue-300 underline"
                 >
-                  {useReaderStore.getState().isSidePanelOpen ? 'Hide Text Panel' : 'Show Text Panel'}
+                  {isSidePanelOpen ? 'Hide Text Panel' : 'Show Text Panel'}
                 </button>
               </div>
               <ReaderCanvas />
