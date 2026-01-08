@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Token } from '../utils/tokenizer';
 import { tokenize } from '../utils/tokenizer';
+import { sanitizeInput, MAX_INPUT_LENGTH } from '../utils/security';
 
 interface ReaderState {
     inputText: string;
@@ -54,9 +55,20 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
     },
 
     setInputText: (text) => {
-        const { settings } = get();
-        const tokens = tokenize(text, settings.chunkSize);
-        set({ inputText: text, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
+        try {
+            const sanitized = sanitizeInput(text);
+
+            // Truncate silently if over limit (or could throw, but truncation is safer for UI)
+            // Ideally we validate before calling this, but as a fallback:
+            const final = sanitized.slice(0, MAX_INPUT_LENGTH);
+
+            const tokens = tokenize(final);
+            set({ inputText: final, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
+        } catch (error) {
+            console.error("Input processing failed:", error);
+            // Fail safely
+            set({ inputText: '', tokens: [], currentIndex: 0, isPlaying: false, isRecording: false });
+        }
     },
 
     setTokens: (tokens) => set({ tokens }),
