@@ -94,48 +94,48 @@ export const ReaderCanvas: React.FC = () => {
     }, [isRecording, reset, play, startRecording]);
 
 
-    // Draw Guide Function
-    // Removed unused 'height' parameter
-    const drawRedicle = (ctx: CanvasRenderingContext2D, centerX: number, centerY: number, width: number, fontSize: number) => {
-        if (!settings.showRedicle) return;
-
-        // Context Box
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        const boxHeight = fontSize * 3;
-        ctx.fillRect(0, centerY - (boxHeight / 2), width, boxHeight);
-
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#333'; // Slightly lighter than black/gray for visibility
-
-        const gap = 35;
-        const length = 25;
-        const crossWidth = 20;
-
-        // Top Guide
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY - gap - length);
-        ctx.lineTo(centerX, centerY - gap);
-        // Top Crossbar
-        ctx.moveTo(centerX - crossWidth, centerY - gap - length);
-        ctx.lineTo(centerX + crossWidth, centerY - gap - length);
-        ctx.stroke();
-
-        // Bottom Guide
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY + gap);
-        ctx.lineTo(centerX, centerY + gap + length);
-        // Bottom Crossbar
-        ctx.moveTo(centerX - crossWidth, centerY + gap + length);
-        ctx.lineTo(centerX + crossWidth, centerY + gap + length);
-        ctx.stroke();
-    };
-
     // Drawing Logic
     const draw = useCallback((tokenIndex: number) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
+
+        // Draw Guide Function
+        // Removed unused 'height' parameter
+        const drawRedicle = (ctx: CanvasRenderingContext2D, centerX: number, centerY: number, width: number, fontSize: number) => {
+            if (!settings.showRedicle) return;
+
+            // Context Box
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            const boxHeight = fontSize * 3;
+            ctx.fillRect(0, centerY - (boxHeight / 2), width, boxHeight);
+
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#333'; // Slightly lighter than black/gray for visibility
+
+            const gap = 35;
+            const length = 25;
+            const crossWidth = 20;
+
+            // Top Guide
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - gap - length);
+            ctx.lineTo(centerX, centerY - gap);
+            // Top Crossbar
+            ctx.moveTo(centerX - crossWidth, centerY - gap - length);
+            ctx.lineTo(centerX + crossWidth, centerY - gap - length);
+            ctx.stroke();
+
+            // Bottom Guide
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY + gap);
+            ctx.lineTo(centerX, centerY + gap + length);
+            // Bottom Crossbar
+            ctx.moveTo(centerX - crossWidth, centerY + gap + length);
+            ctx.lineTo(centerX + crossWidth, centerY + gap + length);
+            ctx.stroke();
+        };
 
         // Clear
         ctx.fillStyle = settings.backgroundColor; // Dynamic background
