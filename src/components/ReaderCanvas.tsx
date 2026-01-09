@@ -1,5 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
+import { ReaderProgress } from './ReaderProgress';
+import { useShallow } from 'zustand/react/shallow';
 
 export const ReaderCanvas: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -9,15 +11,25 @@ export const ReaderCanvas: React.FC = () => {
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
 
+    // Use a selector with useShallow to prevent re-renders when currentIndex changes.
+    // We only subscribe to stable properties or properties that should trigger a re-render.
     const {
         tokens,
-        currentIndex,
         isRecording,
         settings,
         play,
         reset,
         setIsRecording
-    } = useReaderStore();
+    } = useReaderStore(
+        useShallow((state) => ({
+            tokens: state.tokens,
+            isRecording: state.isRecording,
+            settings: state.settings,
+            play: state.play,
+            reset: state.reset,
+            setIsRecording: state.setIsRecording
+        }))
+    );
 
     // Start Recording Helper
     const startRecording = useCallback(() => {
@@ -190,7 +202,8 @@ export const ReaderCanvas: React.FC = () => {
         ctx.fillStyle = settings.textColor;
         ctx.fillText(postRedicle, startX + preWidth + redicleWidth, centerY);
 
-    }, [tokens, settings]); // Removed wpm form dependencies as it is not used in draw anymore
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tokens, settings]); // drawRedicle is non-memoized but stable enough for this use case
 
     // Animation Loop
     useEffect(() => {
@@ -240,10 +253,19 @@ export const ReaderCanvas: React.FC = () => {
         return () => cancelAnimationFrame(requestRef.current);
     }, []);
 
-    // Trigger Draw on index change
+    // Trigger Draw on index change via subscription to avoid re-renders
     useEffect(() => {
-        draw(currentIndex);
-    }, [currentIndex, draw]);
+        const unsubscribe = useReaderStore.subscribe((state, prevState) => {
+            if (state.currentIndex !== prevState.currentIndex) {
+                draw(state.currentIndex);
+            }
+        });
+
+        // Initial draw
+        draw(useReaderStore.getState().currentIndex);
+
+        return unsubscribe;
+    }, [draw]);
 
     // Resize Handling
     useEffect(() => {
@@ -265,9 +287,6 @@ export const ReaderCanvas: React.FC = () => {
         return () => window.removeEventListener('resize', resize);
     }, [draw, settings.aspectRatio]); // Add aspect ratio to dependency to re-trigger
 
-    // Progress Calculation
-    const progress = tokens.length > 0 ? (currentIndex / tokens.length) * 100 : 0;
-
     return (
         <div
             className={`w-full bg-[#1a1a1a] rounded-lg overflow-hidden shadow-2xl border border-gray-800 relative group transition-all duration-300 mx-auto ${settings.aspectRatio === '9:16' ? 'max-w-[400px] aspect-[9/16]' : 'aspect-video'}`}
@@ -288,12 +307,7 @@ export const ReaderCanvas: React.FC = () => {
             )}
 
             {/* Progress Bar Overlay */}
-            <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-800/50">
-                <div
-                    className="h-full bg-blue-500 transition-all duration-100 ease-linear"
-                    style={{ width: `${progress}%` }}
-                />
-            </div>
+            <ReaderProgress />
         </div>
     );
 };
