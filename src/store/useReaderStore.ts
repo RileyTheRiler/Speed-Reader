@@ -54,8 +54,9 @@ export const useReaderStore = create<ReaderState>((set, get) => ({
     },
 
     setInputText: (text) => {
-        const { settings } = get();
-        const tokens = tokenize(text, settings.chunkSize);
+        // const { settings } = get();
+        // tokenize now only accepts text, chunkSize was removed from API as it was unused
+        const tokens = tokenize(text);
         set({ inputText: text, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
     },
 
