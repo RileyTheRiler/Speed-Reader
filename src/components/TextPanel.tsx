@@ -27,6 +27,7 @@ export const TextPanel: React.FC = () => {
                 <h2 className="text-white font-bold text-lg">Text View</h2>
                 <button
                     onClick={toggleSidePanel}
+                    aria-label="Close text panel"
                     className="text-gray-400 hover:text-white transition-colors p-1"
                 >
                     ✕
@@ -47,15 +48,23 @@ export const TextPanel: React.FC = () => {
                                 <span
                                     key={index}
                                     ref={isActive ? activeRef : null}
+                                    role="button"
+                                    tabIndex={0}
                                     className={`
-                                        transition-colors duration-100 px-1 rounded
-                                        ${isActive ? 'bg-blue-600 text-white font-bold scale-105' : 'hover:bg-[#383838]'}
+                                        transition-colors duration-100 px-1 rounded cursor-pointer
+                                        ${isActive ? 'bg-blue-600 text-white font-bold scale-105' : 'hover:bg-[#383838] focus:bg-[#383838] focus:outline-none focus:ring-2 focus:ring-blue-500'}
                                     `}
                                     onClick={() => {
                                         useReaderStore.getState().setCurrentIndex(index);
                                         useReaderStore.getState().play();
                                     }}
-                                    style={{ cursor: 'pointer' }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            useReaderStore.getState().setCurrentIndex(index);
+                                            useReaderStore.getState().play();
+                                        }
+                                    }}
                                 >
                                     {token.text}{token.hasSpaceAfter ? ' ' : ''}
                                 </span>
