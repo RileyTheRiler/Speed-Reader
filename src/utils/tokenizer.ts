@@ -44,9 +44,9 @@ const processWord = (word: string): WordInfo => {
         multiplier = 1.2;
     }
 
-    const leadingMatch = word.match(/^['"\(]+/);
+    const leadingMatch = word.match(/^['"(]+/);
     const leadingOffset = leadingMatch ? leadingMatch[0].length : 0;
-    const cleanText = word.replace(/^['"\(]+|['"\)]+$/g, '') || word;
+    const cleanText = word.replace(/^['"(]+|['")]+$/g, '') || word;
 
     return { word, cleanText, leadingOffset, multiplier, isSentenceEnd };
 };
