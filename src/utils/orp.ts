@@ -6,7 +6,3 @@ export const calculateORP = (word: string): number => {
     if (length <= 13) return 3;
     return 4;
 };
-
-export const getORPChar = (word: string): string => {
-    return word[calculateORP(word)] || "";
-};

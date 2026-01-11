@@ -1,24 +1,37 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { Token } from '../utils/tokenizer';
 import { tokenize } from '../utils/tokenizer';
 
+interface ReaderSettings {
+    chunkSize: number;
+    fontSize: number;
+    showReticle: boolean;
+    pauseAtEndOfSentence: boolean;
+    backgroundColor: string;
+    textColor: string;
+    highlightColor: string;
+    aspectRatio: '16:9' | '9:16';
+}
+
 interface ReaderState {
+    // Text & tokens
     inputText: string;
     tokens: Token[];
     currentIndex: number;
+
+    // Playback state
     isPlaying: boolean;
     isRecording: boolean;
+    isFullscreen: boolean;
     wpm: number;
-    settings: {
-        chunkSize: number;
-        fontSize: number;
-        showRedicle: boolean;
-        pauseAtEndOfSentence: boolean;
-        backgroundColor: string;
-        textColor: string;
-        highlightColor: string;
-        aspectRatio: '16:9' | '9:16';
-    };
+
+    // UI state
+    isSidePanelOpen: boolean;
+    showInput: boolean;
+
+    // Settings (persisted)
+    settings: ReaderSettings;
 
     // Actions
     setInputText: (text: string) => void;
@@ -26,64 +39,167 @@ interface ReaderState {
     setWpm: (wpm: number) => void;
     play: () => void;
     pause: () => void;
+    togglePlay: () => void;
     reset: () => void;
     setIsRecording: (isRecording: boolean) => void;
     setCurrentIndex: (index: number) => void;
-    updateSettings: (settings: Partial<ReaderState['settings']>) => void;
-
-    isSidePanelOpen: boolean;
+    updateSettings: (settings: Partial<ReaderSettings>) => void;
     toggleSidePanel: () => void;
+    setShowInput: (show: boolean) => void;
+    setIsFullscreen: (isFullscreen: boolean) => void;
+
+    // Skip controls
+    skipForward: (count?: number) => void;
+    skipBackward: (count?: number) => void;
+    skipToNextSentence: () => void;
+    skipToPrevSentence: () => void;
+
+    // Computed helpers
+    getEstimatedTime: () => number;
+    getRemainingTime: () => number;
+    getProgress: () => number;
 }
 
-export const useReaderStore = create<ReaderState>((set, get) => ({
-    inputText: '',
-    tokens: [],
-    currentIndex: 0,
-    isPlaying: false,
-    isRecording: false,
-    wpm: 300,
-    settings: {
-        chunkSize: 1,
-        fontSize: 64,
-        showRedicle: true,
-        pauseAtEndOfSentence: false,
-        backgroundColor: '#1a1a1a',
-        textColor: '#e5e5e5',
-        highlightColor: '#ff4444',
-        aspectRatio: '16:9',
-    },
+export const useReaderStore = create<ReaderState>()(
+    persist(
+        (set, get) => ({
+            inputText: '',
+            tokens: [],
+            currentIndex: 0,
+            isPlaying: false,
+            isRecording: false,
+            isFullscreen: false,
+            wpm: 300,
+            isSidePanelOpen: false,
+            showInput: true,
 
-    setInputText: (text) => {
-        const { settings } = get();
-        const tokens = tokenize(text, settings.chunkSize);
-        set({ inputText: text, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
-    },
+            settings: {
+                chunkSize: 1,
+                fontSize: 64,
+                showReticle: true,
+                pauseAtEndOfSentence: false,
+                backgroundColor: '#1a1a1a',
+                textColor: '#e5e5e5',
+                highlightColor: '#ff4444',
+                aspectRatio: '16:9',
+            },
 
-    setTokens: (tokens) => set({ tokens }),
+            setInputText: (text) => {
+                const { settings } = get();
+                const tokens = tokenize(text, settings.chunkSize);
+                set({ inputText: text, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
+            },
 
-    setWpm: (wpm) => set({ wpm }),
+            setTokens: (tokens) => set({ tokens }),
 
-    play: () => set({ isPlaying: true }),
+            setWpm: (wpm) => set({ wpm: Math.max(100, Math.min(1000, wpm)) }),
 
-    pause: () => set({ isPlaying: false }),
+            play: () => set({ isPlaying: true }),
 
-    reset: () => set({ currentIndex: 0, isPlaying: false, isRecording: false }),
+            pause: () => set({ isPlaying: false }),
 
-    setIsRecording: (isRecording) => set({ isRecording }),
+            togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
 
-    setCurrentIndex: (index) => set({ currentIndex: index }),
+            reset: () => set({ currentIndex: 0, isPlaying: false, isRecording: false }),
 
-    updateSettings: (newSettings) => {
-        set((state) => ({
-            settings: { ...state.settings, ...newSettings }
-        }));
-        // Re-tokenize if chunk size changes
-        const state = get();
-        if (newSettings.chunkSize && newSettings.chunkSize !== state.settings.chunkSize) {
-            state.setInputText(state.inputText);
+            setIsRecording: (isRecording) => set({ isRecording }),
+
+            setCurrentIndex: (index) => set({ currentIndex: index }),
+
+            updateSettings: (newSettings) => {
+                set((state) => ({
+                    settings: { ...state.settings, ...newSettings }
+                }));
+                const state = get();
+                if (newSettings.chunkSize && newSettings.chunkSize !== state.settings.chunkSize) {
+                    state.setInputText(state.inputText);
+                }
+            },
+
+            toggleSidePanel: () => set((state) => ({ isSidePanelOpen: !state.isSidePanelOpen })),
+
+            setShowInput: (show) => set({ showInput: show }),
+
+            setIsFullscreen: (isFullscreen) => set({ isFullscreen }),
+
+            // Skip controls
+            skipForward: (count = 5) => {
+                const { currentIndex, tokens } = get();
+                const newIndex = Math.min(currentIndex + count, tokens.length - 1);
+                set({ currentIndex: newIndex });
+            },
+
+            skipBackward: (count = 5) => {
+                const { currentIndex } = get();
+                const newIndex = Math.max(currentIndex - count, 0);
+                set({ currentIndex: newIndex });
+            },
+
+            skipToNextSentence: () => {
+                const { currentIndex, tokens } = get();
+                for (let i = currentIndex + 1; i < tokens.length; i++) {
+                    if (tokens[i - 1]?.isSentenceEnd) {
+                        set({ currentIndex: i });
+                        return;
+                    }
+                }
+                // If no next sentence, go to end
+                set({ currentIndex: tokens.length - 1 });
+            },
+
+            skipToPrevSentence: () => {
+                const { currentIndex, tokens } = get();
+                // Find the start of current sentence first
+                let sentenceStart = currentIndex;
+                for (let i = currentIndex - 1; i >= 0; i--) {
+                    if (tokens[i]?.isSentenceEnd) {
+                        sentenceStart = i + 1;
+                        break;
+                    }
+                    if (i === 0) sentenceStart = 0;
+                }
+
+                // If we're at the start of a sentence, go to previous sentence
+                if (sentenceStart === currentIndex || currentIndex - sentenceStart <= 1) {
+                    for (let i = sentenceStart - 2; i >= 0; i--) {
+                        if (tokens[i]?.isSentenceEnd) {
+                            set({ currentIndex: i + 1 });
+                            return;
+                        }
+                    }
+                    set({ currentIndex: 0 });
+                } else {
+                    // Go to start of current sentence
+                    set({ currentIndex: sentenceStart });
+                }
+            },
+
+            // Computed helpers
+            getEstimatedTime: () => {
+                const { tokens, wpm } = get();
+                if (tokens.length === 0 || wpm === 0) return 0;
+                return (tokens.length / wpm) * 60; // seconds
+            },
+
+            getRemainingTime: () => {
+                const { tokens, currentIndex, wpm } = get();
+                if (tokens.length === 0 || wpm === 0) return 0;
+                const remaining = tokens.length - currentIndex;
+                return (remaining / wpm) * 60; // seconds
+            },
+
+            getProgress: () => {
+                const { tokens, currentIndex } = get();
+                if (tokens.length === 0) return 0;
+                return (currentIndex / tokens.length) * 100;
+            },
+        }),
+        {
+            name: 'hypersonic-reader-settings',
+            partialize: (state) => ({
+                wpm: state.wpm,
+                settings: state.settings,
+            }),
         }
-    },
-
-    isSidePanelOpen: false,
-    toggleSidePanel: () => set((state) => ({ isSidePanelOpen: !state.isSidePanelOpen }))
-}));
+    )
+);
