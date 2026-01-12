@@ -56,6 +56,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
         getProgress
     } = useReaderStore();
 
+    const toggleFullscreen = useCallback(() => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+            setIsFullscreen(true);
+        } else {
+            document.exitFullscreen();
+            setIsFullscreen(false);
+        }
+    }, [setIsFullscreen]);
+
     // Keyboard shortcuts
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
         // Don't trigger if user is typing in an input
@@ -112,22 +122,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                 }
                 break;
         }
-    }, [togglePlay, setWpm, wpm, skipForward, skipBackward, skipToNextSentence, skipToPrevSentence, reset, isFullscreen, setIsFullscreen]);
+    }, [togglePlay, setWpm, wpm, skipForward, skipBackward, skipToNextSentence, skipToPrevSentence, reset, isFullscreen, setIsFullscreen, toggleFullscreen]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleKeyDown]);
-
-    const toggleFullscreen = () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-            setIsFullscreen(true);
-        } else {
-            document.exitFullscreen();
-            setIsFullscreen(false);
-        }
-    };
 
     // Listen for fullscreen changes
     useEffect(() => {

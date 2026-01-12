@@ -1,0 +1,3 @@
+## 2026-01-12 - Decoupling High-Frequency Updates from React
+**Learning:** React re-renders are too expensive for 60fps animations or high-frequency updates (like a 500wpm word reader). Zustand's `store.subscribe` allows bypassing the React render cycle completely for these specific updates.
+**Action:** For high-frequency state changes (progress bars, canvas, timers), exclude the changing value from the React component's selector. Instead, use `store.subscribe` in a `useEffect` to imperatively update the DOM (via refs) or trigger canvas draws. Ensure accessibility attributes are also updated imperatively.
