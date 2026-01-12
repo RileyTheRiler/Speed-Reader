@@ -44,8 +44,10 @@ const processWord = (word: string): WordInfo => {
         multiplier = 1.2;
     }
 
+    // eslint-disable-next-line no-useless-escape
     const leadingMatch = word.match(/^['"\(]+/);
     const leadingOffset = leadingMatch ? leadingMatch[0].length : 0;
+    // eslint-disable-next-line no-useless-escape
     const cleanText = word.replace(/^['"\(]+|['"\)]+$/g, '') || word;
 
     return { word, cleanText, leadingOffset, multiplier, isSentenceEnd };
