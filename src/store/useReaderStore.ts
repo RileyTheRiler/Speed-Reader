@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Token } from '../utils/tokenizer';
 import { tokenize } from '../utils/tokenizer';
+import { sanitizeInput } from '../utils/security';
 
 interface ReaderSettings {
     chunkSize: number;
@@ -86,8 +87,9 @@ export const useReaderStore = create<ReaderState>()(
 
             setInputText: (text) => {
                 const { settings } = get();
-                const tokens = tokenize(text, settings.chunkSize);
-                set({ inputText: text, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
+                const sanitized = sanitizeInput(text);
+                const tokens = tokenize(sanitized, settings.chunkSize);
+                set({ inputText: sanitized, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
             },
 
             setTokens: (tokens) => set({ tokens }),
