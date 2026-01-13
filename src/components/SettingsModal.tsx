@@ -150,10 +150,11 @@ export const SettingsModal: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Font Family */}
                             <div className="col-span-full md:col-span-1 bg-gray-800/30 p-4 rounded-lg space-y-3">
-                                <label className="text-sm text-gray-300 font-medium">Typeface</label>
+                                <label htmlFor="typeface-select" className="text-sm text-gray-300 font-medium">Typeface</label>
                                 <select
+                                    id="typeface-select"
                                     value={settings.fontFamily}
-                                    onChange={(e) => updateSettings({ fontFamily: e.target.value as any })}
+                                    onChange={(e) => updateSettings({ fontFamily: e.target.value as 'sans' | 'serif' | 'mono' | 'dyslexic' })}
                                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 outline-none"
                                 >
                                     <option value="sans">Sans Serif (Inter)</option>
