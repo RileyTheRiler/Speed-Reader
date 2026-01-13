@@ -12,6 +12,13 @@ interface ReaderSettings {
     textColor: string;
     highlightColor: string;
     aspectRatio: '16:9' | '9:16';
+    fontFamily: 'sans' | 'serif' | 'mono' | 'dyslexic';
+    readingMode: 'rsvp' | 'pacer';
+    smartChunking: boolean; // "Chunking Mode" - uses NLP to split phrases
+    peripheralMode: boolean; // "Peripheral Trainer" - fades outer words
+    bionicReading: boolean; // "Bionic Reading" - bolds first half
+    smartRewind: boolean; // Rewind on pause
+    punctuationPause: boolean; // Pause at commas/periods
 }
 
 interface ReaderState {
@@ -26,9 +33,16 @@ interface ReaderState {
     isFullscreen: boolean;
     wpm: number;
 
-    // UI state
     isSidePanelOpen: boolean;
+    isSettingsOpen: boolean;
+    isSummaryOpen: boolean;
     showInput: boolean;
+    isZenMode: boolean;
+
+    // Auto-Summary State
+    summary: string | null;
+    isGeneratingSummary: boolean;
+    apiKey: string | null;
 
     // Settings (persisted)
     settings: ReaderSettings;
@@ -45,8 +59,16 @@ interface ReaderState {
     setCurrentIndex: (index: number) => void;
     updateSettings: (settings: Partial<ReaderSettings>) => void;
     toggleSidePanel: () => void;
+    toggleSettings: () => void;
+    toggleZenMode: () => void;
+    toggleSummary: () => void;
     setShowInput: (show: boolean) => void;
     setIsFullscreen: (isFullscreen: boolean) => void;
+
+    // Auto-Summary Actions
+    setApiKey: (key: string | null) => void;
+    setSummary: (summary: string | null) => void;
+    setIsGeneratingSummary: (isGenerating: boolean) => void;
 
     // Skip controls
     skipForward: (count?: number) => void;
@@ -71,7 +93,14 @@ export const useReaderStore = create<ReaderState>()(
             isFullscreen: false,
             wpm: 300,
             isSidePanelOpen: false,
+            isSettingsOpen: false,
+            isSummaryOpen: false, // Added
             showInput: true,
+            isZenMode: false,
+
+            summary: null,
+            isGeneratingSummary: false,
+            apiKey: null,
 
             settings: {
                 chunkSize: 1,
@@ -82,11 +111,18 @@ export const useReaderStore = create<ReaderState>()(
                 textColor: '#e5e5e5',
                 highlightColor: '#ff4444',
                 aspectRatio: '16:9',
+                fontFamily: 'sans',
+                readingMode: 'rsvp',
+                smartChunking: false,
+                peripheralMode: false,
+                bionicReading: false,
+                smartRewind: false,
+                punctuationPause: false,
             },
 
             setInputText: (text) => {
                 const { settings } = get();
-                const tokens = tokenize(text, settings.chunkSize);
+                const tokens = tokenize(text, settings.chunkSize, settings.smartChunking);
                 set({ inputText: text, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
             },
 
@@ -96,7 +132,15 @@ export const useReaderStore = create<ReaderState>()(
 
             play: () => set({ isPlaying: true }),
 
-            pause: () => set({ isPlaying: false }),
+            pause: () => {
+                const { settings, currentIndex } = get();
+                set({ isPlaying: false });
+
+                if (settings.smartRewind) {
+                    const newIndex = Math.max(0, currentIndex - 5);
+                    set({ currentIndex: newIndex });
+                }
+            },
 
             togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
 
@@ -111,16 +155,26 @@ export const useReaderStore = create<ReaderState>()(
                     settings: { ...state.settings, ...newSettings }
                 }));
                 const state = get();
-                if (newSettings.chunkSize && newSettings.chunkSize !== state.settings.chunkSize) {
+                if (
+                    (newSettings.chunkSize && newSettings.chunkSize !== state.settings.chunkSize) ||
+                    (newSettings.smartChunking !== undefined && newSettings.smartChunking !== state.settings.smartChunking)
+                ) {
                     state.setInputText(state.inputText);
                 }
             },
 
             toggleSidePanel: () => set((state) => ({ isSidePanelOpen: !state.isSidePanelOpen })),
+            toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
+            toggleZenMode: () => set((state) => ({ isZenMode: !state.isZenMode })),
+            toggleSummary: () => set((state) => ({ isSummaryOpen: !state.isSummaryOpen })),
 
             setShowInput: (show) => set({ showInput: show }),
 
             setIsFullscreen: (isFullscreen) => set({ isFullscreen }),
+
+            setApiKey: (apiKey) => set({ apiKey }),
+            setSummary: (summary) => set({ summary }),
+            setIsGeneratingSummary: (isGeneratingSummary) => set({ isGeneratingSummary }),
 
             // Skip controls
             skipForward: (count = 5) => {

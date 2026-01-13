@@ -132,6 +132,45 @@ export const ReaderCanvas: React.FC = () => {
         ctx.stroke();
     }, [settings.showReticle]);
 
+    // Font mapping helper
+    const getFontStack = useCallback((family: string) => {
+        switch (family) {
+            case 'serif': return '"Merriweather", "Times New Roman", serif';
+            case 'mono': return '"JetBrains Mono", "Courier New", monospace';
+            case 'dyslexic': return '"OpenDyslexic", "Comic Sans MS", sans-serif';
+            case 'sans':
+            default: return '"Inter", system-ui, sans-serif';
+        }
+    }, []);
+
+    // Bionic Reading Helper
+    const drawBionicText = useCallback((ctx: CanvasRenderingContext2D, text: string, x: number, y: number, color: string, baseFont: string) => {
+        if (!settings.bionicReading || text.length < 2) {
+            ctx.font = baseFont;
+            ctx.fillStyle = color;
+            ctx.fillText(text, x, y);
+            return ctx.measureText(text).width;
+        }
+
+        // Split word: First 40-50% bold
+        const splitIndex = Math.ceil(text.length * 0.4);
+        const boldPart = text.substring(0, splitIndex);
+        const normalPart = text.substring(splitIndex);
+
+        // Draw Bold Part
+        ctx.font = `bold ${baseFont}`;
+        ctx.fillStyle = color;
+        ctx.fillText(boldPart, x, y);
+        const boldWidth = ctx.measureText(boldPart).width;
+
+        // Draw Normal Part
+        ctx.font = baseFont; // Reset to normal weight
+        ctx.fillText(normalPart, x + boldWidth, y);
+        const normalWidth = ctx.measureText(normalPart).width;
+
+        return boldWidth + normalWidth;
+    }, [settings.bionicReading]);
+
     // Drawing Logic
     const draw = useCallback((tokenIndex: number) => {
         const canvas = canvasRef.current;
@@ -149,13 +188,15 @@ export const ReaderCanvas: React.FC = () => {
         drawReticle(ctx, centerX, centerY, canvas.width, settings.fontSize);
 
         const token = tokens[tokenIndex];
+        const fontStack = getFontStack(settings.fontFamily);
+        const baseFont = `${settings.fontSize}px ${fontStack}`;
 
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
 
         if (!token) {
             // Draw status message
-            ctx.font = `italic ${settings.fontSize / 2}px Inter, sans-serif`;
+            ctx.font = `italic ${settings.fontSize / 2}px ${fontStack}`;
             ctx.fillStyle = '#666';
             const msg = tokenIndex >= tokens.length && tokens.length > 0 ? "Done" : "Ready";
             const width = ctx.measureText(msg).width;
@@ -163,10 +204,8 @@ export const ReaderCanvas: React.FC = () => {
             return;
         }
 
-        // Font Settings
-        ctx.font = `${settings.fontSize}px Inter, sans-serif`;
-
-        // Calculate Alignment using ORP
+        // --- Calculate Center Word Metrics ---
+        ctx.font = baseFont; // Standard font for measurement
         const text = token.text;
         const orpIndex = Math.min(token.orpIndex, text.length - 1);
 
@@ -176,21 +215,102 @@ export const ReaderCanvas: React.FC = () => {
 
         const preWidth = ctx.measureText(preReticle).width;
         const reticleWidth = ctx.measureText(reticleChar).width;
+        const totalWidth = ctx.measureText(text).width;
 
         // Center reticleChar at centerX
         const startX = centerX - preWidth - (reticleWidth / 2);
 
-        // Draw text parts
-        ctx.fillStyle = settings.textColor;
-        ctx.fillText(preReticle, startX, centerY);
+        // --- Draw Peripheral Words (if enabled) ---
+        if (settings.peripheralMode) {
+            ctx.globalAlpha = 0.3; // Fade out peripheral words
 
-        ctx.fillStyle = settings.highlightColor;
-        ctx.fillText(reticleChar, startX + preWidth, centerY);
+            // Previous Word
+            const prevToken = tokens[tokenIndex - 1];
+            if (prevToken) {
+                const margin = settings.fontSize; // Gap between words
+                const prevTextWidth = ctx.measureText(prevToken.text).width;
+                // Position to the left of the startX of current word
+                drawBionicText(ctx, prevToken.text, startX - margin - prevTextWidth, centerY, settings.textColor, baseFont);
+            }
 
-        ctx.fillStyle = settings.textColor;
-        ctx.fillText(postReticle, startX + preWidth + reticleWidth, centerY);
+            // Next Word
+            const nextToken = tokens[tokenIndex + 1];
+            if (nextToken) {
+                const margin = settings.fontSize;
+                // Position to the right of the end of current word
+                // Current word ends at startX + totalWidth
+                // Actually need to consider Bionic width calculation if bionic is on, but measureText is close enough
+                drawBionicText(ctx, nextToken.text, startX + totalWidth + margin, centerY, settings.textColor, baseFont);
+            }
 
-    }, [tokens, settings, drawReticle]);
+            ctx.globalAlpha = 1.0; // Reset alpha
+        }
+
+        // --- Draw Center Word ---
+        // We need to handle the highlighted character specially even in Bionic mode
+        // This makes Bionic + Highlight color tricky.
+        // Strategy: If Bionic is on, we ignore the red Highlight color for simplicity? 
+        // OR we overlay the red highlight char?
+        // Let's stick to the existing highlight logic for the center character, 
+        // and apply Bionic bolding to the Pre-Reticle part.
+
+        if (settings.bionicReading) {
+            // Draw Bionic - Custom implementation to preserve ORP highlight
+
+            // 1. Pre-Reticle (Apply Bionic Bolding)
+            const splitIndex = Math.ceil(text.length * 0.4);
+
+            // Re-calculate split relative to parts
+            // This is getting complex. Let's simplify:
+            // Just bold the preReticle part if it's in the first half?
+
+            // Simpler Bionic: Just bold the first part of preReticle
+            // And maybe the reticle char itself if it's early
+
+            // Let's use standard drawing but bold the font for the first part
+
+            let currentX = startX;
+
+            // Pre-Reticle
+            // We need to split preReticle into bold and normal parts
+            const preSplit = Math.min(splitIndex, preReticle.length);
+            const preBold = preReticle.substring(0, preSplit);
+            const preNormal = preReticle.substring(preSplit);
+
+            ctx.font = `bold ${baseFont}`;
+            ctx.fillStyle = settings.textColor;
+            ctx.fillText(preBold, currentX, centerY);
+            currentX += ctx.measureText(preBold).width;
+
+            ctx.font = baseFont;
+            ctx.fillText(preNormal, currentX, centerY);
+            currentX += ctx.measureText(preNormal).width;
+
+            // Reticle Char (Always Red, Always Bold if early?)
+            // Let's keep it simple: Reticle is always Normal weight (or standard) but Red
+            ctx.fillStyle = settings.highlightColor;
+            // ctx.font = `bold ${baseFont}`; // Optional: make reticle bold?
+            ctx.fillText(reticleChar, currentX, centerY);
+            currentX += ctx.measureText(reticleChar).width;
+
+            // Post-Reticle (Usually normal)
+            ctx.fillStyle = settings.textColor;
+            ctx.font = baseFont;
+            ctx.fillText(postReticle, currentX, centerY);
+
+        } else {
+            // Standard Rendering
+            ctx.fillStyle = settings.textColor;
+            ctx.fillText(preReticle, startX, centerY);
+
+            ctx.fillStyle = settings.highlightColor;
+            ctx.fillText(reticleChar, startX + preWidth, centerY);
+
+            ctx.fillStyle = settings.textColor;
+            ctx.fillText(postReticle, startX + preWidth + reticleWidth, centerY);
+        }
+
+    }, [tokens, settings, drawReticle, drawBionicText, getFontStack]);
 
     // Optimized Animation Loop - only runs when playing
     useEffect(() => {
@@ -220,7 +340,9 @@ export const ReaderCanvas: React.FC = () => {
 
                 const currentToken = state.tokens[state.currentIndex];
                 const baseDelay = 60000 / state.wpm;
-                const multiplier = currentToken ? currentToken.delayMultiplier : 1;
+                // If punctuationPause is false, force multiplier to 1 (constant speed)
+                // Otherwise use the token's calculated multiplier (which includes punctuation and length)
+                const multiplier = (currentToken && state.settings.punctuationPause) ? currentToken.delayMultiplier : 1;
                 const requiredDelay = baseDelay * multiplier;
 
                 if (accumulatorRef.current >= requiredDelay) {

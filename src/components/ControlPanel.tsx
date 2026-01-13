@@ -13,7 +13,9 @@ import {
     Maximize,
     Minimize,
     Eye,
-    EyeOff
+    EyeOff,
+    Settings,
+    Sparkles
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -53,8 +55,19 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
         skipToPrevSentence,
         getEstimatedTime,
         getRemainingTime,
-        getProgress
+        getProgress,
+        toggleSettings
     } = useReaderStore();
+
+    const toggleFullscreen = useCallback(() => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+            setIsFullscreen(true);
+        } else {
+            document.exitFullscreen();
+            setIsFullscreen(false);
+        }
+    }, [setIsFullscreen]);
 
     // Keyboard shortcuts
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -112,22 +125,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                 }
                 break;
         }
-    }, [togglePlay, setWpm, wpm, skipForward, skipBackward, skipToNextSentence, skipToPrevSentence, reset, isFullscreen, setIsFullscreen]);
+    }, [togglePlay, setWpm, wpm, skipForward, skipBackward, skipToNextSentence, skipToPrevSentence, reset, isFullscreen, setIsFullscreen, toggleFullscreen]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleKeyDown]);
-
-    const toggleFullscreen = () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-            setIsFullscreen(true);
-        } else {
-            document.exitFullscreen();
-            setIsFullscreen(false);
-        }
-    };
 
     // Listen for fullscreen changes
     useEffect(() => {
@@ -364,6 +367,27 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                         />
                     </div>
 
+                    {/* Chunk Size Slider */}
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Chunk Size</label>
+                            <span className="text-sm text-white font-mono">
+                                {settings.chunkSize === 1 ? '1 word' : `${settings.chunkSize} words`}
+                            </span>
+                        </div>
+                        <input
+                            type="range"
+                            min="1"
+                            max="5"
+                            step="1"
+                            value={settings.chunkSize}
+                            onChange={(e) => updateSettings({ chunkSize: Number(e.target.value) })}
+                            className="w-full accent-blue-500 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                            aria-label="Words per chunk"
+                        />
+                        <p className="text-xs text-gray-500">Display multiple words at once for faster reading</p>
+                    </div>
+
                     {/* Colors */}
                     <div className="space-y-3 pt-4 border-t border-gray-700">
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Colors</label>
@@ -417,6 +441,33 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
 
                     {/* Action Buttons */}
                     <div className="flex items-center justify-end gap-3">
+                        <button
+                            onClick={toggleSettings}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-700 hover:bg-gray-700/50 text-sm text-gray-400 hover:text-gray-200 transition-colors"
+                            aria-label="Open settings"
+                        >
+                            <Settings size={16} />
+                            Settings
+                        </button>
+
+                        <button
+                            onClick={useReaderStore.getState().toggleZenMode}
+                            className="p-2 sm:p-3 rounded-xl bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]"
+                            title="Zen Mode"
+                        >
+                            <Maximize size={20} className="sm:w-6 sm:h-6" />
+                            <span className="text-[10px] uppercase font-bold tracking-wider">Zen</span>
+                        </button>
+
+                        <button
+                            onClick={useReaderStore.getState().toggleSummary}
+                            className="p-2 sm:p-3 rounded-xl bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]"
+                            title="AI Summary"
+                        >
+                            <Sparkles size={20} className="sm:w-6 sm:h-6 text-purple-400" />
+                            <span className="text-[10px] uppercase font-bold tracking-wider">Summary</span>
+                        </button>
+
                         <button
                             onClick={toggleFullscreen}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-700 hover:bg-gray-700/50 text-sm text-gray-400 hover:text-gray-200 transition-colors"

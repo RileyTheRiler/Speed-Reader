@@ -1,7 +1,11 @@
+import { useEffect } from 'react';
 import { useReaderStore } from './store/useReaderStore';
 import { ReaderCanvas } from './components/ReaderCanvas';
 import { ControlPanel } from './components/ControlPanel';
 import { TextPanel } from './components/TextPanel';
+import { SettingsModal } from './components/SettingsModal';
+import { SummaryModal } from './components/SummaryModal';
+import { FileImport } from './components/FileImport';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
@@ -12,7 +16,9 @@ function App() {
     showInput,
     setShowInput,
     isSidePanelOpen,
-    toggleSidePanel
+    toggleSidePanel,
+    isZenMode,
+    toggleZenMode
   } = useReaderStore();
 
   const handleStart = () => {
@@ -23,6 +29,16 @@ function App() {
   const handleBackToInput = () => {
     setShowInput(true);
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isZenMode) {
+        toggleZenMode();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isZenMode, toggleZenMode]);
 
   const isReading = tokens.length > 0 && !showInput;
 
@@ -52,15 +68,22 @@ function App() {
                     className="text-sm text-blue-400 hover:text-blue-300 underline"
                     aria-label={isSidePanelOpen ? 'Hide text panel' : 'Show text panel'}
                   >
-                    {isSidePanelOpen ? 'Hide Text Panel' : 'Show Text Panel'}
+                    {isSidePanelOpen ? 'Hide Side Panel' : 'Show Side Panel'}
                   </button>
                 </div>
-                <ReaderCanvas />
+
+                {useReaderStore.getState().settings.readingMode === 'pacer' ? (
+                  <TextPanel variant="embedded" />
+                ) : (
+                  <ReaderCanvas />
+                )}
+
                 <ControlPanel onToggleInput={handleBackToInput} />
               </div>
             ) : (
               <div className="space-y-6">
                 <div>
+                  <FileImport />
                   <label htmlFor="input-text" className="block mb-2 font-bold text-[#eee]">
                     Input Text
                   </label>
@@ -94,6 +117,8 @@ function App() {
           </div>
         </div>
         <TextPanel />
+        <SettingsModal />
+        <SummaryModal isOpen={useReaderStore.getState().isSummaryOpen} onClose={useReaderStore.getState().toggleSummary} />
       </div>
     </ErrorBoundary>
   );

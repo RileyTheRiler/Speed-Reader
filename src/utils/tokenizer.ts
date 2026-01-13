@@ -44,22 +44,79 @@ const processWord = (word: string): WordInfo => {
         multiplier = 1.2;
     }
 
-    const leadingMatch = word.match(/^['"\(]+/);
+    const leadingMatch = word.match(/^['" (]+/);
     const leadingOffset = leadingMatch ? leadingMatch[0].length : 0;
-    const cleanText = word.replace(/^['"\(]+|['"\)]+$/g, '') || word;
+    const cleanText = word.replace(/^['" (]+|['" )]+$/g, '') || word;
 
     return { word, cleanText, leadingOffset, multiplier, isSentenceEnd };
 };
 
-export const tokenize = (text: string, chunkSize: number = 1): Token[] => {
+export const tokenize = (text: string, chunkSize: number = 1, smartChunking: boolean = false): Token[] => {
+    // Basic word splitting
     const rawWords = text.trim().split(/\s+/).filter(w => w.length > 0);
 
     if (rawWords.length === 0) return [];
 
     const tokens: Token[] = [];
 
-    // Single word mode (default)
+    // --- Smart Chunking Mode ---
+    if (smartChunking) {
+        // Simple heuristic: Split by punctuation, or group words up to ~3-4 words max
+        // Better approach: Re-construct text and split by regex that respects phrases
+
+        // Let's use a sentence/phrase splitter
+        // We will iterate words and group them greedily until punctuation or length limit
+        let currentChunk: string[] = [];
+        let currentChunkLength = 0;
+
+        for (let i = 0; i < rawWords.length; i++) {
+            const word = rawWords[i];
+            currentChunk.push(word);
+            currentChunkLength += word.length;
+
+            const isEndVal = /[.!?,;:]$/.test(word);
+            const isLongChunk = currentChunk.length >= 3 || currentChunkLength > 20;
+
+            if (isEndVal || isLongChunk || i === rawWords.length - 1) {
+                // Flush chunk
+                const chunkText = currentChunk.join(' ');
+                const chunkWords = currentChunk;
+                const wordInfos = chunkWords.map(processWord);
+                const chunkCleanText = wordInfos.map(w => w.cleanText).join(' ');
+
+                // ORP: Middle of chunk
+                const middleWordIndex = Math.floor(chunkWords.length / 2);
+                let orpPosition = 0;
+                for (let j = 0; j < middleWordIndex; j++) {
+                    orpPosition += chunkWords[j].length + 1;
+                }
+                const midInfo = wordInfos[middleWordIndex];
+                orpPosition += calculateORP(midInfo.cleanText) + midInfo.leadingOffset;
+
+                // Max Multiplier
+                const maxMultiplier = Math.max(...wordInfos.map(w => w.multiplier));
+
+                tokens.push({
+                    id: `smart-${tokens.length}-${chunkWords[0]}`,
+                    text: chunkText,
+                    cleanText: chunkCleanText,
+                    orpIndex: orpPosition,
+                    delayMultiplier: maxMultiplier * (1 + (chunkWords.length - 1) * 0.2),
+                    isChunk: true,
+                    isSentenceEnd: isEndVal,
+                    hasSpaceAfter: true,
+                });
+
+                currentChunk = [];
+                currentChunkLength = 0;
+            }
+        }
+        return tokens;
+    }
+
+    // --- Standard Chunking Mode ---
     if (chunkSize <= 1) {
+        // ... (Existing Single Word Logic)
         for (let i = 0; i < rawWords.length; i++) {
             const wordInfo = processWord(rawWords[i]);
             const cleanOrpIndex = calculateORP(wordInfo.cleanText);
@@ -79,7 +136,7 @@ export const tokenize = (text: string, chunkSize: number = 1): Token[] => {
         return tokens;
     }
 
-    // Chunking mode - group words together
+    // ... (Existing Manual Chunking logic)
     for (let i = 0; i < rawWords.length; i += chunkSize) {
         const chunkWords = rawWords.slice(i, Math.min(i + chunkSize, rawWords.length));
         const wordInfos = chunkWords.map(processWord);

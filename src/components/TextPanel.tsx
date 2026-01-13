@@ -47,8 +47,20 @@ const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }
 
 TokenSpan.displayName = 'TokenSpan';
 
-export const TextPanel: React.FC = () => {
-    const { tokens, currentIndex, isSidePanelOpen, toggleSidePanel, setCurrentIndex, play } = useReaderStore();
+interface TextPanelProps {
+    variant?: 'side-panel' | 'embedded';
+}
+
+export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) => {
+    const {
+        tokens,
+        currentIndex,
+        isSidePanelOpen,
+        toggleSidePanel,
+        setCurrentIndex,
+        play,
+        settings
+    } = useReaderStore();
     const containerRef = useRef<HTMLDivElement>(null);
 
     const handleTokenClick = (index: number) => {
@@ -56,30 +68,39 @@ export const TextPanel: React.FC = () => {
         play();
     };
 
-    if (!isSidePanelOpen) return null;
+    if (variant === 'side-panel' && !isSidePanelOpen) return null;
+
+    const baseClasses = variant === 'side-panel'
+        ? "fixed inset-y-0 right-0 w-80 bg-[#2a2a2a] border-l border-[#444] shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out"
+        : "w-full max-w-4xl mx-auto bg-[#1a1a1a] rounded-xl border border-gray-800 shadow-xl flex flex-col h-[500px]"; // Embedded style
+
+    const fontStack = settings.fontFamily === 'serif' ? 'font-serif' :
+        settings.fontFamily === 'mono' ? 'font-mono' : 'font-sans';
 
     return (
         <div
-            className="fixed inset-y-0 right-0 w-80 bg-[#2a2a2a] border-l border-[#444] shadow-2xl z-50 transform transition-transform duration-300 ease-in-out flex flex-col"
+            className={baseClasses}
             role="complementary"
             aria-label="Text panel"
         >
-            <div className="p-4 border-b border-[#444] flex justify-between items-center bg-[#333]">
-                <h2 className="text-white font-bold text-lg">Text View</h2>
-                <button
-                    onClick={toggleSidePanel}
-                    className="text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-700"
-                    aria-label="Close text panel"
-                >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                        <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"/>
-                    </svg>
-                </button>
-            </div>
+            {variant === 'side-panel' && (
+                <div className="p-4 border-b border-[#444] flex justify-between items-center bg-[#333]">
+                    <h2 className="text-white font-bold text-lg">Text View</h2>
+                    <button
+                        onClick={toggleSidePanel}
+                        className="text-gray-400 hover:text-white transition-colors p-1 rounded hover:bg-gray-700"
+                        aria-label="Close text panel"
+                    >
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+                        </svg>
+                    </button>
+                </div>
+            )}
 
             <div
                 ref={containerRef}
-                className="flex-1 overflow-y-auto p-4 text-gray-300 leading-relaxed font-serif text-lg"
+                className={`flex-1 overflow-y-auto p-6 text-gray-300 leading-loose text-lg ${fontStack}`}
             >
                 {tokens.length === 0 ? (
                     <p className="text-gray-500 italic text-center mt-10">No text loaded.</p>
