@@ -80,7 +80,7 @@ export const SettingsModal: React.FC = () => {
                             {/* RSVP Options */}
                             {settings.readingMode === 'rsvp' && (
                                 <>
-                                    <div className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between">
+                                    <label className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-800/50 transition-colors">
                                         <div className="space-y-1">
                                             <span className="text-sm text-white font-medium">Peripheral Trainer</span>
                                             <p className="text-xs text-gray-500">Show previous & next words faded out</p>
@@ -89,9 +89,9 @@ export const SettingsModal: React.FC = () => {
                                             checked={settings.peripheralMode}
                                             onChange={(v) => updateSettings({ peripheralMode: v })}
                                         />
-                                    </div>
+                                    </label>
 
-                                    <div className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between">
+                                    <label className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-800/50 transition-colors">
                                         <div className="space-y-1">
                                             <span className="text-sm text-white font-medium">Smart Chunking</span>
                                             <p className="text-xs text-gray-500">Group words by natural phrasing</p>
@@ -100,7 +100,7 @@ export const SettingsModal: React.FC = () => {
                                             checked={settings.smartChunking}
                                             onChange={(v) => updateSettings({ smartChunking: v })}
                                         />
-                                    </div>
+                                    </label>
                                 </>
                             )}
                         </div>
@@ -153,7 +153,7 @@ export const SettingsModal: React.FC = () => {
                                 <label className="text-sm text-gray-300 font-medium">Typeface</label>
                                 <select
                                     value={settings.fontFamily}
-                                    onChange={(e) => updateSettings({ fontFamily: e.target.value as any })}
+                                    onChange={(e) => updateSettings({ fontFamily: e.target.value as 'sans' | 'serif' | 'mono' | 'dyslexic' })}
                                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 outline-none"
                                 >
                                     <option value="sans">Sans Serif (Inter)</option>
@@ -164,7 +164,7 @@ export const SettingsModal: React.FC = () => {
                             </div>
 
                             {/* Bionic Reading */}
-                            <div className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between">
+                            <label className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-800/50 transition-colors">
                                 <div className="space-y-1">
                                     <span className="text-sm text-white font-medium">Bionic Reading</span>
                                     <p className="text-xs text-gray-500">Bold initial letters for focus</p>
@@ -173,7 +173,7 @@ export const SettingsModal: React.FC = () => {
                                     checked={settings.bionicReading}
                                     onChange={(v) => updateSettings({ bionicReading: v })}
                                 />
-                            </div>
+                            </label>
                         </div>
                     </section>
 
@@ -184,7 +184,7 @@ export const SettingsModal: React.FC = () => {
                         </h3>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between">
+                            <label className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-800/50 transition-colors">
                                 <div className="space-y-1">
                                     <span className="text-sm text-white font-medium">Smart Rewind</span>
                                     <p className="text-xs text-gray-500">Rewind 5 words when pausing</p>
@@ -193,9 +193,9 @@ export const SettingsModal: React.FC = () => {
                                     checked={settings.smartRewind}
                                     onChange={(v) => updateSettings({ smartRewind: v })}
                                 />
-                            </div>
+                            </label>
 
-                            <div className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between">
+                            <label className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between cursor-pointer hover:bg-gray-800/50 transition-colors">
                                 <div className="space-y-1">
                                     <span className="text-sm text-white font-medium">Punctuation Pausing</span>
                                     <p className="text-xs text-gray-500">Pause slightly at periods & commas</p>
@@ -204,7 +204,7 @@ export const SettingsModal: React.FC = () => {
                                     checked={settings.punctuationPause}
                                     onChange={(v) => updateSettings({ punctuationPause: v })}
                                 />
-                            </div>
+                            </label>
                         </div>
                     </section>
 
