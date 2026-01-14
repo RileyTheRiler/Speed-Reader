@@ -1,5 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import ePub from 'epubjs';
+import { MAX_INPUT_LENGTH } from './security';
 
 // Configure PDF.js worker
 // We need to point to the worker file. In a Vite setup, we usually import the worker script URL or rely on a CDN if local worker causes issues.
@@ -17,15 +18,18 @@ export const parsePdf = async (file: File): Promise<string> => {
     const numPages = pdf.numPages;
 
     for (let i = 1; i <= numPages; i++) {
+        if (fullText.length >= MAX_INPUT_LENGTH) break;
+
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         const pageText = textContent.items
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             .map((item: any) => item.str)
             .join(' ');
         fullText += pageText + '\n\n';
     }
 
-    return fullText;
+    return fullText.slice(0, MAX_INPUT_LENGTH);
 };
 
 export const parseEpub = async (file: File): Promise<string> => {
@@ -46,9 +50,12 @@ export const parseEpub = async (file: File): Promise<string> => {
     // We can just load the entire book text? No, that's heavy.
     // Let's iterate spine items.
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const spineItems = (spine as any).items || [];
 
     for (const item of spineItems) {
+        if (fullText.length >= MAX_INPUT_LENGTH) break;
+
         // Load the chapter
         // item can be loaded
         // Be careful: 'book.load' might load the whole thing into DOM.
@@ -63,6 +70,7 @@ export const parseEpub = async (file: File): Promise<string> => {
             // Wait, we passed ArrayBuffer to ePub(), so it's "opened".
             // We can just iterate the spine and get content.
 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const doc = await book.load(item.href) as any;
             // doc is a DOM Document / XML Document
             if (doc && doc.body) {
@@ -75,7 +83,7 @@ export const parseEpub = async (file: File): Promise<string> => {
         }
     }
 
-    return fullText;
+    return fullText.slice(0, MAX_INPUT_LENGTH);
 };
 
 export const parseFile = async (file: File): Promise<string> => {
@@ -91,5 +99,6 @@ export const parseFile = async (file: File): Promise<string> => {
     }
 
     // Default: Text
-    return await file.text();
+    const text = await file.text();
+    return text.slice(0, MAX_INPUT_LENGTH);
 };
