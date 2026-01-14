@@ -1,24 +1,25 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
+import { useShallow } from 'zustand/react/shallow';
 
 export const ReaderCanvas: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const progressBarRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
     const requestRef = useRef<number>(0);
     const previousTimeRef = useRef<number>(0);
     const accumulatorRef = useRef<number>(0);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
 
-    const {
-        tokens,
-        currentIndex,
-        isPlaying,
-        isRecording,
-        settings,
-        play,
-        reset,
-        setIsRecording
-    } = useReaderStore();
+    const settings = useReaderStore(useShallow(state => state.settings));
+    const isPlaying = useReaderStore(state => state.isPlaying);
+    const isRecording = useReaderStore(state => state.isRecording);
+
+    const play = useReaderStore(state => state.play);
+    const reset = useReaderStore(state => state.reset);
+    const setIsRecording = useReaderStore(state => state.setIsRecording);
 
     // Start Recording Helper
     const startRecording = useCallback(() => {
@@ -178,6 +179,8 @@ export const ReaderCanvas: React.FC = () => {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
+        const tokens = useReaderStore.getState().tokens;
+
         // Clear with background color
         ctx.fillStyle = settings.backgroundColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -247,32 +250,13 @@ export const ReaderCanvas: React.FC = () => {
         }
 
         // --- Draw Center Word ---
-        // We need to handle the highlighted character specially even in Bionic mode
-        // This makes Bionic + Highlight color tricky.
-        // Strategy: If Bionic is on, we ignore the red Highlight color for simplicity? 
-        // OR we overlay the red highlight char?
-        // Let's stick to the existing highlight logic for the center character, 
-        // and apply Bionic bolding to the Pre-Reticle part.
-
         if (settings.bionicReading) {
             // Draw Bionic - Custom implementation to preserve ORP highlight
-
-            // 1. Pre-Reticle (Apply Bionic Bolding)
             const splitIndex = Math.ceil(text.length * 0.4);
-
-            // Re-calculate split relative to parts
-            // This is getting complex. Let's simplify:
-            // Just bold the preReticle part if it's in the first half?
-
-            // Simpler Bionic: Just bold the first part of preReticle
-            // And maybe the reticle char itself if it's early
-
-            // Let's use standard drawing but bold the font for the first part
 
             let currentX = startX;
 
             // Pre-Reticle
-            // We need to split preReticle into bold and normal parts
             const preSplit = Math.min(splitIndex, preReticle.length);
             const preBold = preReticle.substring(0, preSplit);
             const preNormal = preReticle.substring(preSplit);
@@ -286,14 +270,12 @@ export const ReaderCanvas: React.FC = () => {
             ctx.fillText(preNormal, currentX, centerY);
             currentX += ctx.measureText(preNormal).width;
 
-            // Reticle Char (Always Red, Always Bold if early?)
-            // Let's keep it simple: Reticle is always Normal weight (or standard) but Red
+            // Reticle Char
             ctx.fillStyle = settings.highlightColor;
-            // ctx.font = `bold ${baseFont}`; // Optional: make reticle bold?
             ctx.fillText(reticleChar, currentX, centerY);
             currentX += ctx.measureText(reticleChar).width;
 
-            // Post-Reticle (Usually normal)
+            // Post-Reticle
             ctx.fillStyle = settings.textColor;
             ctx.font = baseFont;
             ctx.fillText(postReticle, currentX, centerY);
@@ -310,7 +292,7 @@ export const ReaderCanvas: React.FC = () => {
             ctx.fillText(postReticle, startX + preWidth + reticleWidth, centerY);
         }
 
-    }, [tokens, settings, drawReticle, drawBionicText, getFontStack]);
+    }, [settings, drawReticle, drawBionicText, getFontStack]);
 
     // Optimized Animation Loop - only runs when playing
     useEffect(() => {
@@ -340,14 +322,11 @@ export const ReaderCanvas: React.FC = () => {
 
                 const currentToken = state.tokens[state.currentIndex];
                 const baseDelay = 60000 / state.wpm;
-                // If punctuationPause is false, force multiplier to 1 (constant speed)
-                // Otherwise use the token's calculated multiplier (which includes punctuation and length)
                 const multiplier = (currentToken && state.settings.punctuationPause) ? currentToken.delayMultiplier : 1;
                 const requiredDelay = baseDelay * multiplier;
 
                 if (accumulatorRef.current >= requiredDelay) {
                     accumulatorRef.current -= requiredDelay;
-                    // Prevent accumulator from getting too large
                     if (accumulatorRef.current > 500) accumulatorRef.current = 0;
 
                     const nextIndex = state.currentIndex + 1;
@@ -360,7 +339,6 @@ export const ReaderCanvas: React.FC = () => {
                     } else {
                         state.setCurrentIndex(nextIndex);
 
-                        // Pause at end of sentence if enabled
                         if (state.settings.pauseAtEndOfSentence && currentToken?.isSentenceEnd) {
                             state.pause();
                         }
@@ -382,8 +360,42 @@ export const ReaderCanvas: React.FC = () => {
 
     // Trigger Draw on index change or settings change
     useEffect(() => {
-        draw(currentIndex);
-    }, [currentIndex, draw]);
+        const state = useReaderStore.getState();
+
+        // Initial Sync
+        draw(state.currentIndex);
+        if (progressBarRef.current) {
+            const progress = state.tokens.length > 0 ? (state.currentIndex / state.tokens.length) * 100 : 0;
+            progressBarRef.current.style.width = `${progress}%`;
+            progressBarRef.current.setAttribute('aria-valuenow', progress.toString());
+        }
+        if (containerRef.current) {
+            containerRef.current.setAttribute('aria-label', `Speed reading display showing word ${state.currentIndex + 1} of ${state.tokens.length}`);
+        }
+
+        const unsub = useReaderStore.subscribe((state, prevState) => {
+             const indexChanged = state.currentIndex !== prevState.currentIndex;
+             const tokensChanged = state.tokens !== prevState.tokens;
+             const settingsChanged = state.settings !== prevState.settings;
+
+             if (indexChanged || tokensChanged || settingsChanged) {
+                 draw(state.currentIndex);
+
+                 // Update Progress Bar
+                 if (progressBarRef.current) {
+                     const progress = state.tokens.length > 0 ? (state.currentIndex / state.tokens.length) * 100 : 0;
+                     progressBarRef.current.style.width = `${progress}%`;
+                     progressBarRef.current.setAttribute('aria-valuenow', progress.toString());
+                 }
+
+                 // Update Container Label
+                  if (containerRef.current) {
+                      containerRef.current.setAttribute('aria-label', `Speed reading display showing word ${state.currentIndex + 1} of ${state.tokens.length}`);
+                 }
+             }
+        });
+        return unsub;
+    }, [draw]);
 
     // Resize Handling
     useEffect(() => {
@@ -405,13 +417,12 @@ export const ReaderCanvas: React.FC = () => {
         return () => window.removeEventListener('resize', resize);
     }, [draw, settings.aspectRatio]);
 
-    const progress = tokens.length > 0 ? (currentIndex / tokens.length) * 100 : 0;
-
     return (
         <div
+            ref={containerRef}
             className={`w-full bg-[#1a1a1a] rounded-lg overflow-hidden shadow-2xl border border-gray-800 relative group transition-all duration-300 mx-auto ${settings.aspectRatio === '9:16' ? 'max-w-[400px] aspect-[9/16]' : 'aspect-video'}`}
             role="img"
-            aria-label={`Speed reading display showing word ${currentIndex + 1} of ${tokens.length}`}
+            aria-label="Speed reading display"
         >
             <div className="absolute top-0 left-0 px-2 py-1 bg-black/50 text-[10px] text-gray-500 font-mono pointer-events-none uppercase tracking-wider z-10">
                 Preview
@@ -433,10 +444,11 @@ export const ReaderCanvas: React.FC = () => {
             {/* Progress Bar Overlay */}
             <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-800/50">
                 <div
+                    ref={progressBarRef}
                     className="h-full bg-blue-500 transition-all duration-100 ease-linear"
-                    style={{ width: `${progress}%` }}
+                    style={{ width: '0%' }}
                     role="progressbar"
-                    aria-valuenow={progress}
+                    aria-valuenow={0}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-label="Reading progress"
