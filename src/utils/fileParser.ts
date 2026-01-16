@@ -1,5 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import ePub from 'epubjs';
+import { MAX_INPUT_LENGTH } from './security';
 
 // Configure PDF.js worker
 // We need to point to the worker file. In a Vite setup, we usually import the worker script URL or rely on a CDN if local worker causes issues.
@@ -23,6 +24,7 @@ export const parsePdf = async (file: File): Promise<string> => {
             .map((item: any) => item.str)
             .join(' ');
         fullText += pageText + '\n\n';
+        if (fullText.length > MAX_INPUT_LENGTH) break;
     }
 
     return fullText;
@@ -73,6 +75,7 @@ export const parseEpub = async (file: File): Promise<string> => {
         } catch (err) {
             console.warn(`Failed to parse chapter ${item.href}:`, err);
         }
+        if (fullText.length > MAX_INPUT_LENGTH) break;
     }
 
     return fullText;
