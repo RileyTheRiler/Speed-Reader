@@ -153,7 +153,7 @@ export const SettingsModal: React.FC = () => {
                                 <label className="text-sm text-gray-300 font-medium">Typeface</label>
                                 <select
                                     value={settings.fontFamily}
-                                    onChange={(e) => updateSettings({ fontFamily: e.target.value as any })}
+                                    onChange={(e) => updateSettings({ fontFamily: e.target.value as 'sans' | 'serif' | 'mono' | 'dyslexic' })}
                                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 outline-none"
                                 >
                                     <option value="sans">Sans Serif (Inter)</option>
