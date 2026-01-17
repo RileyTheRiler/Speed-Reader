@@ -1,9 +1,12 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useReaderStore } from '../store/useReaderStore';
+import { useShallow } from 'zustand/react/shallow';
 
 export const ReaderCanvas: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const progressBarRef = useRef<HTMLDivElement>(null);
     const progressBarRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -22,6 +25,17 @@ export const ReaderCanvas: React.FC = () => {
         play,
         reset,
         setIsRecording
+    } = useReaderStore(
+        useShallow((state) => ({
+            tokens: state.tokens,
+            isPlaying: state.isPlaying,
+            isRecording: state.isRecording,
+            settings: state.settings,
+            play: state.play,
+            reset: state.reset,
+            setIsRecording: state.setIsRecording,
+        }))
+    );
     } = useReaderStore(useShallow(state => ({
         tokens: state.tokens,
         isPlaying: state.isPlaying,
@@ -392,6 +406,9 @@ export const ReaderCanvas: React.FC = () => {
         };
     }, [isPlaying]);
 
+    // Direct Store Subscription for High-Frequency Updates (Canvas + Progress Bar)
+    useEffect(() => {
+        // Initial sync
     // Optimized: Subscribe to store changes manually to avoid re-rendering component on every index change
     useEffect(() => {
         // Initial sync of UI
@@ -408,6 +425,12 @@ export const ReaderCanvas: React.FC = () => {
             containerRef.current.setAttribute('aria-label', `Speed reading display showing word ${state.currentIndex + 1} of ${state.tokens.length}`);
         }
 
+        // Subscribe to store changes
+        const unsub = useReaderStore.subscribe((state, prevState) => {
+            if (state.currentIndex !== prevState.currentIndex) {
+                draw(state.currentIndex);
+
+                // Update progress bar
         return useReaderStore.subscribe((state, prevState) => {
             if (state.currentIndex !== prevState.currentIndex) {
                 draw(state.currentIndex);
@@ -418,11 +441,15 @@ export const ReaderCanvas: React.FC = () => {
                     progressBarRef.current.setAttribute('aria-valuenow', progress.toString());
                 }
 
+                // Update container aria-label
                 if (containerRef.current) {
                     containerRef.current.setAttribute('aria-label', `Speed reading display showing word ${state.currentIndex + 1} of ${state.tokens.length}`);
                 }
             }
         });
+
+        return unsub;
+    }, [draw]); // draw changes when settings or tokens change, triggering re-subscribe which is correct
     }, [draw, tokens.length]); // Re-subscribe if draw (settings/tokens) changes
 
     // Resize Handling
@@ -445,6 +472,12 @@ export const ReaderCanvas: React.FC = () => {
         return () => window.removeEventListener('resize', resize);
     }, [draw, settings.aspectRatio]);
 
+    // Initial Progress Calculation for Render (will be stale after first render, but that's fine as we update via ref)
+    // Actually, we can just use 0 or current state for initial render.
+    // Since we don't listen to currentIndex, this value will only be correct on mount/re-render due to OTHER changes.
+    // That is acceptable as the useEffect will update it immediately after mount.
+    const initialIndex = useReaderStore.getState().currentIndex;
+    const progress = tokens.length > 0 ? (initialIndex / tokens.length) * 100 : 0;
     // Initial value for static render (will be updated by effect immediately)
     // We use a safe default here as the effect handles synchronization
     const initialProgress = 0;
@@ -454,6 +487,7 @@ export const ReaderCanvas: React.FC = () => {
             ref={containerRef}
             className={`w-full bg-[#1a1a1a] rounded-lg overflow-hidden shadow-2xl border border-gray-800 relative group transition-all duration-300 mx-auto ${settings.aspectRatio === '9:16' ? 'max-w-[400px] aspect-[9/16]' : 'aspect-video'}`}
             role="img"
+            aria-label={`Speed reading display showing word ${initialIndex + 1} of ${tokens.length}`}
             aria-label="Speed reading display"
         >
             <div className="absolute top-0 left-0 px-2 py-1 bg-black/50 text-[10px] text-gray-500 font-mono pointer-events-none uppercase tracking-wider z-10">
