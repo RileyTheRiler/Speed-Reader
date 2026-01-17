@@ -26,6 +26,7 @@ export const SettingsModal: React.FC = () => {
                     <button
                         onClick={toggleSettings}
                         className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-colors"
+                        aria-label="Close settings"
                     >
                         <X size={20} />
                     </button>
@@ -88,6 +89,7 @@ export const SettingsModal: React.FC = () => {
                                         <Toggle
                                             checked={settings.peripheralMode}
                                             onChange={(v) => updateSettings({ peripheralMode: v })}
+                                            aria-label="Toggle peripheral trainer"
                                         />
                                     </div>
 
@@ -99,6 +101,7 @@ export const SettingsModal: React.FC = () => {
                                         <Toggle
                                             checked={settings.smartChunking}
                                             onChange={(v) => updateSettings({ smartChunking: v })}
+                                            aria-label="Toggle smart chunking"
                                         />
                                     </div>
                                 </>
@@ -150,10 +153,11 @@ export const SettingsModal: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Font Family */}
                             <div className="col-span-full md:col-span-1 bg-gray-800/30 p-4 rounded-lg space-y-3">
-                                <label className="text-sm text-gray-300 font-medium">Typeface</label>
+                                <label htmlFor="font-family-select" className="text-sm text-gray-300 font-medium">Typeface</label>
                                 <select
+                                    id="font-family-select"
                                     value={settings.fontFamily}
-                                    onChange={(e) => updateSettings({ fontFamily: e.target.value as any })}
+                                    onChange={(e) => updateSettings({ fontFamily: e.target.value as 'sans' | 'serif' | 'mono' | 'dyslexic' })}
                                     className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 outline-none"
                                 >
                                     <option value="sans">Sans Serif (Inter)</option>
@@ -172,6 +176,7 @@ export const SettingsModal: React.FC = () => {
                                 <Toggle
                                     checked={settings.bionicReading}
                                     onChange={(v) => updateSettings({ bionicReading: v })}
+                                    aria-label="Toggle bionic reading"
                                 />
                             </div>
                         </div>
@@ -192,6 +197,7 @@ export const SettingsModal: React.FC = () => {
                                 <Toggle
                                     checked={settings.smartRewind}
                                     onChange={(v) => updateSettings({ smartRewind: v })}
+                                    aria-label="Toggle smart rewind"
                                 />
                             </div>
 
@@ -203,6 +209,7 @@ export const SettingsModal: React.FC = () => {
                                 <Toggle
                                     checked={settings.punctuationPause}
                                     onChange={(v) => updateSettings({ punctuationPause: v })}
+                                    aria-label="Toggle punctuation pausing"
                                 />
                             </div>
                         </div>
@@ -224,10 +231,11 @@ export const SettingsModal: React.FC = () => {
     );
 };
 
-const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+const Toggle = ({ checked, onChange, 'aria-label': ariaLabel }: { checked: boolean; onChange: (v: boolean) => void; 'aria-label'?: string }) => (
     <button
         role="switch"
         aria-checked={checked}
+        aria-label={ariaLabel}
         onClick={() => onChange(!checked)}
         className={clsx(
             "w-11 h-6 rounded-full transition-colors relative flex-shrink-0",
