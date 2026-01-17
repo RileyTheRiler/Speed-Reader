@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Token } from '../utils/tokenizer';
 import { tokenize } from '../utils/tokenizer';
+import { MAX_INPUT_LENGTH, sanitizeInput } from '../utils/security';
+import { sanitizeInput } from '../utils/security';
 
 interface ReaderSettings {
     chunkSize: number;
@@ -80,6 +82,7 @@ interface ReaderState {
     getEstimatedTime: () => number;
     getRemainingTime: () => number;
     getProgress: () => number;
+    getCurrentSentence: () => string;
 }
 
 export const useReaderStore = create<ReaderState>()(
@@ -122,8 +125,10 @@ export const useReaderStore = create<ReaderState>()(
 
             setInputText: (text) => {
                 const { settings } = get();
-                const tokens = tokenize(text, settings.chunkSize, settings.smartChunking);
-                set({ inputText: text, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
+                const sanitizedText = sanitizeInput(text.slice(0, MAX_INPUT_LENGTH));
+                const sanitizedText = sanitizeInput(text);
+                const tokens = tokenize(sanitizedText, settings.chunkSize, settings.smartChunking);
+                set({ inputText: sanitizedText, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
             },
 
             setTokens: (tokens) => set({ tokens }),
@@ -151,14 +156,18 @@ export const useReaderStore = create<ReaderState>()(
             setCurrentIndex: (index) => set({ currentIndex: index }),
 
             updateSettings: (newSettings) => {
+                const oldSettings = get().settings;
                 set((state) => ({
                     settings: { ...state.settings, ...newSettings }
                 }));
+
                 const state = get();
-                if (
-                    (newSettings.chunkSize && newSettings.chunkSize !== state.settings.chunkSize) ||
-                    (newSettings.smartChunking !== undefined && newSettings.smartChunking !== state.settings.smartChunking)
-                ) {
+                // Check if we need to re-tokenize
+                const shouldRetokenize =
+                    (newSettings.chunkSize !== undefined && newSettings.chunkSize !== oldSettings.chunkSize) ||
+                    (newSettings.smartChunking !== undefined && newSettings.smartChunking !== oldSettings.smartChunking);
+
+                if (shouldRetokenize) {
                     state.setInputText(state.inputText);
                 }
             },
@@ -246,6 +255,41 @@ export const useReaderStore = create<ReaderState>()(
                 const { tokens, currentIndex } = get();
                 if (tokens.length === 0) return 0;
                 return (currentIndex / tokens.length) * 100;
+            },
+
+            getCurrentSentence: () => {
+                const { tokens, currentIndex } = get();
+                if (tokens.length === 0) return '';
+
+                // Find start
+                let start = currentIndex;
+                for (let i = currentIndex - 1; i >= 0; i--) {
+                    if (tokens[i]?.isSentenceEnd) {
+                        start = i + 1;
+                        break;
+                    }
+                    if (i === 0) start = 0;
+                }
+
+                // Find end
+                let end = tokens.length;
+                for (let i = currentIndex; i < tokens.length; i++) {
+                    if (tokens[i]?.isSentenceEnd) {
+                        end = i + 1;
+                        break;
+                    }
+                }
+
+                // Construct sentence
+                // We should respect spacing? Token has `hasSpaceAfter`
+                let sentence = '';
+                for (let i = start; i < end; i++) {
+                    sentence += tokens[i].text;
+                    if (tokens[i].hasSpaceAfter && i !== end - 1) {
+                        sentence += ' ';
+                    }
+                }
+                return sentence;
             },
         }),
         {
