@@ -61,23 +61,47 @@ export const tokenize = (text: string, chunkSize: number = 1, smartChunking: boo
 
     // --- Smart Chunking Mode ---
     if (smartChunking) {
-        // Simple heuristic: Split by punctuation, or group words up to ~3-4 words max
-        // Better approach: Re-construct text and split by regex that respects phrases
-
-        // Let's use a sentence/phrase splitter
-        // We will iterate words and group them greedily until punctuation or length limit
         let currentChunk: string[] = [];
         let currentChunkLength = 0;
 
+        // "Glue" words that shouldn't end a chunk if possible
+        const GLUE_WORDS = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'if', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'is', 'are', 'was', 'were']);
+
+        // Common phrases to try and keep together (simple heuristic lookahead could be added later)
+        // For now, we rely on "don't break after glue words" and "extend if short"
+
         for (let i = 0; i < rawWords.length; i++) {
             const word = rawWords[i];
+            const cleanWord = word.toLowerCase().replace(/[^a-z]/g, '');
+
             currentChunk.push(word);
             currentChunkLength += word.length;
 
-            const isEndVal = /[.!?,;:]$/.test(word);
-            const isLongChunk = currentChunk.length >= 3 || currentChunkLength > 20;
+            const hasPunctuation = /[.!?,;:]$/.test(word);
+            const isGlue = GLUE_WORDS.has(cleanWord);
 
-            if (isEndVal || isLongChunk || i === rawWords.length - 1) {
+            // Heuristics for breaking a chunk:
+            // 1. Hard break: Punctuation (always break)
+            // 2. Soft break: 
+            //    - At least 3 words OR > 20 chars
+            //    - AND not a glue word (unless chunk is getting too long > 4 words)
+            //    - AND next word indicates a new Start? (Capitalized? - maybe too aggressive)
+
+            let shouldBreak = false;
+
+            if (hasPunctuation) {
+                shouldBreak = true;
+            } else if (currentChunk.length >= 3) {
+                if (currentChunk.length >= 5 || currentChunkLength > 25) {
+                    // Force break if too long
+                    shouldBreak = true;
+                } else if (!isGlue) {
+                    // Break if acceptable length and not ending on a connector
+                    shouldBreak = true;
+                }
+            }
+
+            if (shouldBreak || i === rawWords.length - 1) {
                 // Flush chunk
                 const chunkText = currentChunk.join(' ');
                 const chunkWords = currentChunk;
@@ -93,17 +117,20 @@ export const tokenize = (text: string, chunkSize: number = 1, smartChunking: boo
                 const midInfo = wordInfos[middleWordIndex];
                 orpPosition += calculateORP(midInfo.cleanText) + midInfo.leadingOffset;
 
-                // Max Multiplier
+                // Max Multiplier + length bonus
                 const maxMultiplier = Math.max(...wordInfos.map(w => w.multiplier));
+
+                // Slightly longer delay for longer chunks
+                const chunkDurationMult = maxMultiplier * (1 + (chunkWords.length - 1) * 0.15);
 
                 tokens.push({
                     id: `smart-${tokens.length}-${chunkWords[0]}`,
                     text: chunkText,
                     cleanText: chunkCleanText,
                     orpIndex: orpPosition,
-                    delayMultiplier: maxMultiplier * (1 + (chunkWords.length - 1) * 0.2),
+                    delayMultiplier: chunkDurationMult,
                     isChunk: true,
-                    isSentenceEnd: isEndVal,
+                    isSentenceEnd: hasPunctuation && /[.!?]/.test(word),
                     hasSpaceAfter: true,
                 });
 

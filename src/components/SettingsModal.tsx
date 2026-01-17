@@ -128,6 +128,29 @@ export const SettingsModal: React.FC = () => {
                                         checked={settings.smartChunking}
                                         onChange={(v) => updateSettings({ smartChunking: v })}
                                     />
+                                    <div className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <span className="text-sm text-white font-medium">Peripheral Trainer</span>
+                                            <p className="text-xs text-gray-500">Show previous & next words faded out</p>
+                                        </div>
+                                        <Toggle
+                                            checked={settings.peripheralMode}
+                                            onChange={(v) => updateSettings({ peripheralMode: v })}
+                                            aria-label="Toggle peripheral trainer"
+                                        />
+                                    </div>
+
+                                    <div className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <span className="text-sm text-white font-medium">Smart Chunking</span>
+                                            <p className="text-xs text-gray-500">Group words by natural phrasing</p>
+                                        </div>
+                                        <Toggle
+                                            checked={settings.smartChunking}
+                                            onChange={(v) => updateSettings({ smartChunking: v })}
+                                            aria-label="Toggle smart chunking"
+                                        />
+                                    </div>
                                 </>
                             )}
                         </div>
@@ -200,6 +223,17 @@ export const SettingsModal: React.FC = () => {
                                 checked={settings.bionicReading}
                                 onChange={(v) => updateSettings({ bionicReading: v })}
                             />
+                            <div className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <span className="text-sm text-white font-medium">Bionic Reading</span>
+                                    <p className="text-xs text-gray-500">Bold initial letters for focus</p>
+                                </div>
+                                <Toggle
+                                    checked={settings.bionicReading}
+                                    onChange={(v) => updateSettings({ bionicReading: v })}
+                                    aria-label="Toggle bionic reading"
+                                />
+                            </div>
                         </div>
                     </section>
 
@@ -222,6 +256,29 @@ export const SettingsModal: React.FC = () => {
                                 checked={settings.punctuationPause}
                                 onChange={(v) => updateSettings({ punctuationPause: v })}
                             />
+                            <div className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <span className="text-sm text-white font-medium">Smart Rewind</span>
+                                    <p className="text-xs text-gray-500">Rewind 5 words when pausing</p>
+                                </div>
+                                <Toggle
+                                    checked={settings.smartRewind}
+                                    onChange={(v) => updateSettings({ smartRewind: v })}
+                                    aria-label="Toggle smart rewind"
+                                />
+                            </div>
+
+                            <div className="bg-gray-800/30 p-4 rounded-lg flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <span className="text-sm text-white font-medium">Punctuation Pausing</span>
+                                    <p className="text-xs text-gray-500">Pause slightly at periods & commas</p>
+                                </div>
+                                <Toggle
+                                    checked={settings.punctuationPause}
+                                    onChange={(v) => updateSettings({ punctuationPause: v })}
+                                    aria-label="Toggle punctuation pausing"
+                                />
+                            </div>
                         </div>
                     </section>
 
@@ -240,3 +297,23 @@ export const SettingsModal: React.FC = () => {
         </div>
     );
 };
+
+const Toggle = ({ checked, onChange, 'aria-label': ariaLabel }: { checked: boolean; onChange: (v: boolean) => void; 'aria-label'?: string }) => (
+    <button
+        role="switch"
+        aria-checked={checked}
+        aria-label={ariaLabel}
+        onClick={() => onChange(!checked)}
+        className={clsx(
+            "w-11 h-6 rounded-full transition-colors relative flex-shrink-0",
+            checked ? "bg-blue-600" : "bg-gray-600"
+        )}
+    >
+        <div
+            className={clsx(
+                "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm",
+                checked ? "translate-x-5" : "translate-x-0"
+            )}
+        />
+    </button>
+);
