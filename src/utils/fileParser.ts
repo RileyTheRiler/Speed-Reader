@@ -1,6 +1,26 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import ePub from 'epubjs';
 import { MAX_INPUT_LENGTH, sanitizeInput } from './security';
+import { MAX_INPUT_LENGTH } from './security';
+
+// Types for EPUB.js
+interface SpineItem {
+    href: string;
+    idref?: string;
+    linear?: string;
+    index?: number;
+}
+
+interface Spine {
+    items: SpineItem[];
+}
+
+interface EpubDocument {
+    body?: {
+        textContent: string | null;
+    };
+    textContent?: string | null;
+}
 
 // Configure PDF.js worker
 // We need to point to the worker file. In a Vite setup, we usually import the worker script URL or rely on a CDN if local worker causes issues.
@@ -21,7 +41,7 @@ export const parsePdf = async (file: File): Promise<string> => {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         const pageText = textContent.items
-            .map((item: any) => item.str)
+            .map((item) => ('str' in item ? (item as { str: string }).str : ''))
             .join(' ');
         fullText += pageText + '\n\n';
 
@@ -29,6 +49,7 @@ export const parsePdf = async (file: File): Promise<string> => {
             fullText = fullText.slice(0, MAX_INPUT_LENGTH);
             break;
         }
+        if (fullText.length > MAX_INPUT_LENGTH) break;
     }
 
     return sanitizeInput(fullText);
@@ -43,7 +64,7 @@ export const parseEpub = async (file: File): Promise<string> => {
     let fullText = '';
 
     await book.ready;
-    const spine = book.spine;
+    const spine = book.spine as unknown as Spine;
 
     // The type definition for spine might be loose, but .each() iterates sections
     // Note: older epubjs versions used .each(), newer might use for-loop on spine.items
@@ -52,7 +73,7 @@ export const parseEpub = async (file: File): Promise<string> => {
     // We can just load the entire book text? No, that's heavy.
     // Let's iterate spine items.
 
-    const spineItems = (spine as any).items || [];
+    const spineItems = spine.items || [];
 
     for (const item of spineItems) {
         // Load the chapter
@@ -69,12 +90,12 @@ export const parseEpub = async (file: File): Promise<string> => {
             // Wait, we passed ArrayBuffer to ePub(), so it's "opened".
             // We can just iterate the spine and get content.
 
-            const doc = await book.load(item.href) as any;
+            const doc = await book.load(item.href) as unknown as EpubDocument;
             // doc is a DOM Document / XML Document
             if (doc && doc.body) {
-                fullText += doc.body.textContent + '\n\n';
+                fullText += (doc.body.textContent || '') + '\n\n';
             } else if (doc && doc.textContent) {
-                fullText += doc.textContent + '\n\n';
+                fullText += (doc.textContent || '') + '\n\n';
             }
 
             if (fullText.length > MAX_INPUT_LENGTH) {
@@ -84,6 +105,7 @@ export const parseEpub = async (file: File): Promise<string> => {
         } catch (err) {
             console.warn(`Failed to parse chapter ${item.href}:`, err);
         }
+        if (fullText.length > MAX_INPUT_LENGTH) break;
     }
 
     return sanitizeInput(fullText);

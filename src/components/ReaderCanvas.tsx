@@ -1,24 +1,36 @@
 import { useRef, useEffect, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useReaderStore } from '../store/useReaderStore';
 
 export const ReaderCanvas: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const progressBarRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
     const requestRef = useRef<number>(0);
     const previousTimeRef = useRef<number>(0);
     const accumulatorRef = useRef<number>(0);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
 
+    // Optimized: Select only stable state, exclude currentIndex to prevent re-renders on every word
     const {
         tokens,
-        currentIndex,
         isPlaying,
         isRecording,
         settings,
         play,
         reset,
         setIsRecording
-    } = useReaderStore();
+    } = useReaderStore(useShallow(state => ({
+        tokens: state.tokens,
+        isPlaying: state.isPlaying,
+        isRecording: state.isRecording,
+        settings: state.settings,
+        play: state.play,
+        reset: state.reset,
+        setIsRecording: state.setIsRecording
+    })));
 
     // Start Recording Helper
     const startRecording = useCallback(() => {
@@ -380,10 +392,38 @@ export const ReaderCanvas: React.FC = () => {
         };
     }, [isPlaying]);
 
-    // Trigger Draw on index change or settings change
+    // Optimized: Subscribe to store changes manually to avoid re-rendering component on every index change
     useEffect(() => {
-        draw(currentIndex);
-    }, [currentIndex, draw]);
+        // Initial sync of UI
+        const state = useReaderStore.getState();
+        draw(state.currentIndex);
+
+        if (progressBarRef.current) {
+            const progress = state.tokens.length > 0 ? (state.currentIndex / state.tokens.length) * 100 : 0;
+            progressBarRef.current.style.width = `${progress}%`;
+            progressBarRef.current.setAttribute('aria-valuenow', progress.toString());
+        }
+
+        if (containerRef.current) {
+            containerRef.current.setAttribute('aria-label', `Speed reading display showing word ${state.currentIndex + 1} of ${state.tokens.length}`);
+        }
+
+        return useReaderStore.subscribe((state, prevState) => {
+            if (state.currentIndex !== prevState.currentIndex) {
+                draw(state.currentIndex);
+
+                if (progressBarRef.current) {
+                    const progress = state.tokens.length > 0 ? (state.currentIndex / state.tokens.length) * 100 : 0;
+                    progressBarRef.current.style.width = `${progress}%`;
+                    progressBarRef.current.setAttribute('aria-valuenow', progress.toString());
+                }
+
+                if (containerRef.current) {
+                    containerRef.current.setAttribute('aria-label', `Speed reading display showing word ${state.currentIndex + 1} of ${state.tokens.length}`);
+                }
+            }
+        });
+    }, [draw, tokens.length]); // Re-subscribe if draw (settings/tokens) changes
 
     // Resize Handling
     useEffect(() => {
@@ -405,13 +445,16 @@ export const ReaderCanvas: React.FC = () => {
         return () => window.removeEventListener('resize', resize);
     }, [draw, settings.aspectRatio]);
 
-    const progress = tokens.length > 0 ? (currentIndex / tokens.length) * 100 : 0;
+    // Initial value for static render (will be updated by effect immediately)
+    // We use a safe default here as the effect handles synchronization
+    const initialProgress = 0;
 
     return (
         <div
+            ref={containerRef}
             className={`w-full bg-[#1a1a1a] rounded-lg overflow-hidden shadow-2xl border border-gray-800 relative group transition-all duration-300 mx-auto ${settings.aspectRatio === '9:16' ? 'max-w-[400px] aspect-[9/16]' : 'aspect-video'}`}
             role="img"
-            aria-label={`Speed reading display showing word ${currentIndex + 1} of ${tokens.length}`}
+            aria-label="Speed reading display"
         >
             <div className="absolute top-0 left-0 px-2 py-1 bg-black/50 text-[10px] text-gray-500 font-mono pointer-events-none uppercase tracking-wider z-10">
                 Preview
@@ -433,10 +476,11 @@ export const ReaderCanvas: React.FC = () => {
             {/* Progress Bar Overlay */}
             <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-800/50">
                 <div
+                    ref={progressBarRef}
                     className="h-full bg-blue-500 transition-all duration-100 ease-linear"
-                    style={{ width: `${progress}%` }}
+                    style={{ width: `${initialProgress}%` }}
                     role="progressbar"
-                    aria-valuenow={progress}
+                    aria-valuenow={initialProgress}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-label="Reading progress"
