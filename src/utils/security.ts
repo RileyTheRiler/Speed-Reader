@@ -1,3 +1,17 @@
+/**
+ * Maximum allowed input length to prevent memory exhaustion and DoS attacks.
+ * Set to 5,000,000 characters.
+ */
+export const MAX_INPUT_LENGTH = 5_000_000;
+
+/**
+ * Sanitizes input text by removing non-printable control characters.
+ * Preserves newlines (\n, \r) and tabs (\t).
+ *
+ * @param text The raw input text.
+ * @returns The sanitized text.
+ */
+export const sanitizeInput = (text: string): string => {
 export const MAX_INPUT_LENGTH = 5_000_000; // 5 million characters (~5MB)
 
 /**

@@ -1,5 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import ePub from 'epubjs';
+import { MAX_INPUT_LENGTH, sanitizeInput } from './security';
 import { MAX_INPUT_LENGTH } from './security';
 
 // Types for EPUB.js
@@ -43,10 +44,15 @@ export const parsePdf = async (file: File): Promise<string> => {
             .map((item) => ('str' in item ? (item as { str: string }).str : ''))
             .join(' ');
         fullText += pageText + '\n\n';
+
+        if (fullText.length > MAX_INPUT_LENGTH) {
+            fullText = fullText.slice(0, MAX_INPUT_LENGTH);
+            break;
+        }
         if (fullText.length > MAX_INPUT_LENGTH) break;
     }
 
-    return fullText;
+    return sanitizeInput(fullText);
 };
 
 export const parseEpub = async (file: File): Promise<string> => {
@@ -91,13 +97,18 @@ export const parseEpub = async (file: File): Promise<string> => {
             } else if (doc && doc.textContent) {
                 fullText += (doc.textContent || '') + '\n\n';
             }
+
+            if (fullText.length > MAX_INPUT_LENGTH) {
+                fullText = fullText.slice(0, MAX_INPUT_LENGTH);
+                break;
+            }
         } catch (err) {
             console.warn(`Failed to parse chapter ${item.href}:`, err);
         }
         if (fullText.length > MAX_INPUT_LENGTH) break;
     }
 
-    return fullText;
+    return sanitizeInput(fullText);
 };
 
 export const parseFile = async (file: File): Promise<string> => {
@@ -113,5 +124,6 @@ export const parseFile = async (file: File): Promise<string> => {
     }
 
     // Default: Text
-    return await file.text();
+    const text = await file.text();
+    return sanitizeInput(text.slice(0, MAX_INPUT_LENGTH));
 };
