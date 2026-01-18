@@ -329,10 +329,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                     {/* Font Size Slider */}
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Font Size</label>
+                            <label htmlFor="cp-font-size" className="text-xs font-semibold text-gray-500 uppercase tracking-widest cursor-pointer">Font Size</label>
                             <span className="text-sm text-white font-mono">{settings.fontSize}px</span>
                         </div>
                         <input
+                            id="cp-font-size"
                             type="range"
                             min="32"
                             max="128"
@@ -347,12 +348,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                     {/* Chunk Size Slider */}
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Chunk Size</label>
+                            <label htmlFor="cp-chunk-size" className="text-xs font-semibold text-gray-500 uppercase tracking-widest cursor-pointer">Chunk Size</label>
                             <span className="text-sm text-white font-mono">
                                 {settings.chunkSize === 1 ? '1 word' : `${settings.chunkSize} words`}
                             </span>
                         </div>
                         <input
+                            id="cp-chunk-size"
                             type="range"
                             min="1"
                             max="5"
@@ -370,8 +372,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Colors</label>
                         <div className="grid grid-cols-3 gap-2">
                             <div className="space-y-1">
-                                <label className="text-xs text-gray-400">Background</label>
+                                <label htmlFor="cp-bg-color" className="text-xs text-gray-400 cursor-pointer">Background</label>
                                 <input
+                                    id="cp-bg-color"
                                     type="color"
                                     value={settings.backgroundColor}
                                     onChange={(e) => updateSettings({ backgroundColor: e.target.value })}
@@ -380,8 +383,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs text-gray-400">Text</label>
+                                <label htmlFor="cp-text-color" className="text-xs text-gray-400 cursor-pointer">Text</label>
                                 <input
+                                    id="cp-text-color"
                                     type="color"
                                     value={settings.textColor}
                                     onChange={(e) => updateSettings({ textColor: e.target.value })}
@@ -390,8 +394,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs text-gray-400">Highlight</label>
+                                <label htmlFor="cp-highlight-color" className="text-xs text-gray-400 cursor-pointer">Highlight</label>
                                 <input
+                                    id="cp-highlight-color"
                                     type="color"
                                     value={settings.highlightColor}
                                     onChange={(e) => updateSettings({ highlightColor: e.target.value })}
