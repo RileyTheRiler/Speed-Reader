@@ -7,16 +7,10 @@ export const MAX_INPUT_LENGTH = 5_000_000;
 /**
  * Sanitizes input text by removing non-printable control characters.
  * Preserves newlines (\n, \r) and tabs (\t).
+ * Truncates text to MAX_INPUT_LENGTH.
  *
  * @param text The raw input text.
  * @returns The sanitized text.
- */
-export const sanitizeInput = (text: string): string => {
-export const MAX_INPUT_LENGTH = 5_000_000; // 5 million characters (~5MB)
-
-/**
- * Sanitizes input text to prevent DoS and remove unwanted control characters.
- * Truncates text to MAX_INPUT_LENGTH.
  */
 export const sanitizeInput = (text: string): string => {
     if (!text) return '';

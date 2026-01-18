@@ -1,7 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import ePub from 'epubjs';
 import { MAX_INPUT_LENGTH, sanitizeInput } from './security';
-import { MAX_INPUT_LENGTH } from './security';
 
 // Types for EPUB.js
 interface SpineItem {
@@ -49,7 +48,6 @@ export const parsePdf = async (file: File): Promise<string> => {
             fullText = fullText.slice(0, MAX_INPUT_LENGTH);
             break;
         }
-        if (fullText.length > MAX_INPUT_LENGTH) break;
     }
 
     return sanitizeInput(fullText);
@@ -105,7 +103,6 @@ export const parseEpub = async (file: File): Promise<string> => {
         } catch (err) {
             console.warn(`Failed to parse chapter ${item.href}:`, err);
         }
-        if (fullText.length > MAX_INPUT_LENGTH) break;
     }
 
     return sanitizeInput(fullText);
@@ -125,5 +122,6 @@ export const parseFile = async (file: File): Promise<string> => {
 
     // Default: Text
     const text = await file.text();
-    return sanitizeInput(text.slice(0, MAX_INPUT_LENGTH));
+    // sanitizeInput will handle truncation
+    return sanitizeInput(text);
 };
