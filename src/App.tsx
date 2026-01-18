@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useReaderStore } from './store/useReaderStore';
+import { useShallow } from 'zustand/react/shallow';
 import { ReaderCanvas } from './components/ReaderCanvas';
 import { ControlPanel } from './components/ControlPanel';
 import { TextPanel } from './components/TextPanel';
@@ -22,7 +23,7 @@ import {
 
 function App() {
   const {
-    tokens,
+    tokensLength,
     inputText,
     setInputText,
     showInput,
@@ -31,10 +32,23 @@ function App() {
     toggleSidePanel,
     isZenMode,
     toggleZenMode,
-    currentIndex,
-    wpm,
     setCurrentIndex,
-  } = useReaderStore();
+    readingMode,
+  } = useReaderStore(
+      useShallow((state) => ({
+          tokensLength: state.tokens.length,
+          inputText: state.inputText,
+          setInputText: state.setInputText,
+          showInput: state.showInput,
+          setShowInput: state.setShowInput,
+          isSidePanelOpen: state.isSidePanelOpen,
+          toggleSidePanel: state.toggleSidePanel,
+          isZenMode: state.isZenMode,
+          toggleZenMode: state.toggleZenMode,
+          setCurrentIndex: state.setCurrentIndex,
+          readingMode: state.settings.readingMode,
+      }))
+  );
 
   // Modal states
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
@@ -50,12 +64,15 @@ function App() {
   const handleStart = () => {
     if (!inputText.trim()) return;
     setShowInput(false);
-    setSessionStartIndex(currentIndex);
+    // Use getState() to access current index without subscription
+    setSessionStartIndex(useReaderStore.getState().currentIndex);
     setSessionStartTime(Date.now());
   };
 
   const handleBackToInput = useCallback(() => {
     // Record the session before going back
+    const { currentIndex, wpm, tokens } = useReaderStore.getState();
+
     if (sessionStartTime && tokens.length > 0) {
       const wordsRead = currentIndex - sessionStartIndex;
       const timeSpent = (Date.now() - sessionStartTime) / 1000;
@@ -68,7 +85,7 @@ function App() {
 
     setShowInput(true);
     setSessionStartTime(null);
-  }, [sessionStartTime, currentIndex, sessionStartIndex, tokens.length, wpm]);
+  }, [sessionStartTime, sessionStartIndex, setShowInput]);
 
   const handleSelectFromLibrary = (content: string, position?: number) => {
     setInputText(content);
@@ -112,7 +129,7 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isZenMode, toggleZenMode]);
 
-  const isReading = tokens.length > 0 && !showInput;
+  const isReading = tokensLength > 0 && !showInput;
 
   // Check for reduced motion preference
   const prefersReducedMotion = typeof window !== 'undefined'
@@ -185,7 +202,7 @@ function App() {
                   </button>
                 </div>
 
-                {useReaderStore.getState().settings.readingMode === 'pacer' ? (
+                {readingMode === 'pacer' ? (
                   <TextPanel variant="embedded" />
                 ) : (
                   <ReaderCanvas />
