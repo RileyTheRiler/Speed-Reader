@@ -271,7 +271,6 @@ export const ReaderCanvas: React.FC = () => {
 
             // Pre-Reticle
             // We need to split preReticle into bold and normal parts
-            const splitIndex = Math.ceil(text.length * 0.4);
             const preSplit = Math.min(splitIndex, preReticle.length);
             const preBold = preReticle.substring(0, preSplit);
             const preNormal = preReticle.substring(preSplit);
@@ -403,8 +402,7 @@ export const ReaderCanvas: React.FC = () => {
         });
 
         return unsub;
-    }, [draw]); // draw changes when settings or tokens change, triggering re-subscribe which is correct
-    }, [draw, tokens.length]);
+    }, [draw, tokens.length]); // draw changes when settings or tokens change, triggering re-subscribe which is correct
 
     // Resize Handling
     useEffect(() => {
@@ -434,7 +432,6 @@ export const ReaderCanvas: React.FC = () => {
             ref={containerRef}
             className={`w-full bg-[#1a1a1a] rounded-lg overflow-hidden shadow-2xl border border-gray-800 relative group transition-all duration-300 mx-auto ${settings.aspectRatio === '9:16' ? 'max-w-[400px] aspect-[9/16]' : 'aspect-video'}`}
             role="img"
-            aria-label="Speed reading display"
             aria-label={`Speed reading display showing word ${initialIndex + 1} of ${tokens.length}`}
         >
             <div className="absolute top-0 left-0 px-2 py-1 bg-black/50 text-[10px] text-gray-500 font-mono pointer-events-none uppercase tracking-wider z-10">
