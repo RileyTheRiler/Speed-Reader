@@ -122,5 +122,6 @@ export const parseFile = async (file: File): Promise<string> => {
 
     // Default: Text
     const text = await file.text();
-    return sanitizeInput(text.slice(0, MAX_INPUT_LENGTH));
+    // sanitizeInput will handle truncation
+    return sanitizeInput(text);
 };

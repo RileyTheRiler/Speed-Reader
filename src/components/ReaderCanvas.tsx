@@ -262,6 +262,11 @@ export const ReaderCanvas: React.FC = () => {
 
         // --- Draw Center Word ---
         if (settings.bionicReading) {
+            // Draw Bionic - Custom implementation to preserve ORP highlight
+
+            // 1. Pre-Reticle (Apply Bionic Bolding)
+            const splitIndex = Math.ceil(text.length * 0.4);
+
             let currentX = startX;
 
             // Pre-Reticle
@@ -281,6 +286,7 @@ export const ReaderCanvas: React.FC = () => {
             currentX += ctx.measureText(preNormal).width;
 
             // Reticle Char
+            // Reticle Char (Always Red, Always Normal weight to maintain readability)
             ctx.fillStyle = settings.highlightColor;
             ctx.fillText(reticleChar, currentX, centerY);
             currentX += ctx.measureText(reticleChar).width;
@@ -332,8 +338,6 @@ export const ReaderCanvas: React.FC = () => {
 
                 const currentToken = state.tokens[state.currentIndex];
                 const baseDelay = 60000 / state.wpm;
-                // If punctuationPause is false, force multiplier to 1 (constant speed)
-                // Otherwise use the token's calculated multiplier (which includes punctuation and length)
                 const multiplier = (currentToken && state.settings.punctuationPause) ? currentToken.delayMultiplier : 1;
                 const requiredDelay = baseDelay * multiplier;
 
@@ -389,6 +393,7 @@ export const ReaderCanvas: React.FC = () => {
             if (state.currentIndex !== prevState.currentIndex) {
                 draw(state.currentIndex);
 
+                // Update progress bar
                 if (progressBarRef.current) {
                     const progress = state.tokens.length > 0 ? (state.currentIndex / state.tokens.length) * 100 : 0;
                     progressBarRef.current.style.width = `${progress}%`;
@@ -399,6 +404,7 @@ export const ReaderCanvas: React.FC = () => {
 
         return unsub;
     }, [draw]); // draw changes when settings or tokens change, triggering re-subscribe which is correct
+    }, [draw, tokens.length]);
 
     // Resize Handling
     useEffect(() => {
@@ -420,6 +426,7 @@ export const ReaderCanvas: React.FC = () => {
         return () => window.removeEventListener('resize', resize);
     }, [draw, settings.aspectRatio]);
 
+    const initialIndex = useReaderStore.getState().currentIndex;
     const initialProgress = 0;
 
     return (
@@ -428,6 +435,7 @@ export const ReaderCanvas: React.FC = () => {
             className={`w-full bg-[#1a1a1a] rounded-lg overflow-hidden shadow-2xl border border-gray-800 relative group transition-all duration-300 mx-auto ${settings.aspectRatio === '9:16' ? 'max-w-[400px] aspect-[9/16]' : 'aspect-video'}`}
             role="img"
             aria-label="Speed reading display"
+            aria-label={`Speed reading display showing word ${initialIndex + 1} of ${tokens.length}`}
         >
             <div className="absolute top-0 left-0 px-2 py-1 bg-black/50 text-[10px] text-gray-500 font-mono pointer-events-none uppercase tracking-wider z-10">
                 Preview
