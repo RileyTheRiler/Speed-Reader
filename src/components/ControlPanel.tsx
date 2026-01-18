@@ -18,6 +18,7 @@ import {
     Sparkles
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { SettingToggle } from './ui/SettingToggle';
 
 interface ControlPanelProps {
     onToggleInput: () => void;
@@ -305,49 +306,25 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                     </div>
 
                     {/* Pause at Sentence End */}
-                    <label className="flex items-center justify-between cursor-pointer group">
-                        <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">Pause at Sentence End</span>
-                        <button
-                            role="switch"
-                            aria-checked={settings.pauseAtEndOfSentence}
-                            onClick={() => updateSettings({ pauseAtEndOfSentence: !settings.pauseAtEndOfSentence })}
-                            className={clsx(
-                                "w-11 h-6 rounded-full transition-colors relative",
-                                settings.pauseAtEndOfSentence ? "bg-blue-600" : "bg-gray-600"
-                            )}
-                        >
-                            <div
-                                className={clsx(
-                                    "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm",
-                                    settings.pauseAtEndOfSentence ? "translate-x-5" : "translate-x-0"
-                                )}
-                            />
-                        </button>
-                    </label>
+                    <SettingToggle
+                        label="Pause at Sentence End"
+                        checked={settings.pauseAtEndOfSentence}
+                        onChange={(v) => updateSettings({ pauseAtEndOfSentence: v })}
+                        className="bg-transparent hover:bg-transparent p-0"
+                    />
 
                     {/* Show Reticle Toggle */}
-                    <label className="flex items-center justify-between cursor-pointer group">
-                        <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors flex items-center gap-2">
-                            {settings.showReticle ? <Eye size={16} /> : <EyeOff size={16} />}
-                            Show Reticle Guides
-                        </span>
-                        <button
-                            role="switch"
-                            aria-checked={settings.showReticle}
-                            onClick={() => updateSettings({ showReticle: !settings.showReticle })}
-                            className={clsx(
-                                "w-11 h-6 rounded-full transition-colors relative",
-                                settings.showReticle ? "bg-blue-600" : "bg-gray-600"
-                            )}
-                        >
-                            <div
-                                className={clsx(
-                                    "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm",
-                                    settings.showReticle ? "translate-x-5" : "translate-x-0"
-                                )}
-                            />
-                        </button>
-                    </label>
+                    <SettingToggle
+                        label={
+                            <span className="flex items-center gap-2">
+                                {settings.showReticle ? <Eye size={16} /> : <EyeOff size={16} />}
+                                Show Reticle Guides
+                            </span>
+                        }
+                        checked={settings.showReticle}
+                        onChange={(v) => updateSettings({ showReticle: v })}
+                        className="bg-transparent hover:bg-transparent p-0"
+                    />
 
                     {/* Font Size Slider */}
                     <div className="space-y-2">

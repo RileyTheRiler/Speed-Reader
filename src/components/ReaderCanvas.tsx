@@ -271,6 +271,7 @@ export const ReaderCanvas: React.FC = () => {
 
             // Pre-Reticle
             // We need to split preReticle into bold and normal parts
+            const splitIndex = Math.ceil(text.length * 0.4);
             const preSplit = Math.min(splitIndex, preReticle.length);
             const preBold = preReticle.substring(0, preSplit);
             const preNormal = preReticle.substring(preSplit);
@@ -284,6 +285,7 @@ export const ReaderCanvas: React.FC = () => {
             ctx.fillText(preNormal, currentX, centerY);
             currentX += ctx.measureText(preNormal).width;
 
+            // Reticle Char
             // Reticle Char (Always Red, Always Normal weight to maintain readability)
             ctx.fillStyle = settings.highlightColor;
             ctx.fillText(reticleChar, currentX, centerY);
@@ -386,10 +388,6 @@ export const ReaderCanvas: React.FC = () => {
             progressBarRef.current.setAttribute('aria-valuenow', progress.toString());
         }
 
-        if (containerRef.current) {
-            containerRef.current.setAttribute('aria-label', `Speed reading display showing word ${state.currentIndex + 1} of ${state.tokens.length}`);
-        }
-
         // Subscribe to store changes
         const unsub = useReaderStore.subscribe((state, prevState) => {
             if (state.currentIndex !== prevState.currentIndex) {
@@ -401,15 +399,11 @@ export const ReaderCanvas: React.FC = () => {
                     progressBarRef.current.style.width = `${progress}%`;
                     progressBarRef.current.setAttribute('aria-valuenow', progress.toString());
                 }
-
-                // Update container aria-label
-                if (containerRef.current) {
-                    containerRef.current.setAttribute('aria-label', `Speed reading display showing word ${state.currentIndex + 1} of ${state.tokens.length}`);
-                }
             }
         });
 
         return unsub;
+    }, [draw]); // draw changes when settings or tokens change, triggering re-subscribe which is correct
     }, [draw, tokens.length]);
 
     // Resize Handling
@@ -440,6 +434,7 @@ export const ReaderCanvas: React.FC = () => {
             ref={containerRef}
             className={`w-full bg-[#1a1a1a] rounded-lg overflow-hidden shadow-2xl border border-gray-800 relative group transition-all duration-300 mx-auto ${settings.aspectRatio === '9:16' ? 'max-w-[400px] aspect-[9/16]' : 'aspect-video'}`}
             role="img"
+            aria-label="Speed reading display"
             aria-label={`Speed reading display showing word ${initialIndex + 1} of ${tokens.length}`}
         >
             <div className="absolute top-0 left-0 px-2 py-1 bg-black/50 text-[10px] text-gray-500 font-mono pointer-events-none uppercase tracking-wider z-10">
