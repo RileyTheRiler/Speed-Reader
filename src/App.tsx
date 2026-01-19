@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useReaderStore } from './store/useReaderStore';
+import { useShallow } from 'zustand/react/shallow';
 import { ReaderCanvas } from './components/ReaderCanvas';
 import { ControlPanel } from './components/ControlPanel';
 import { TextPanel } from './components/TextPanel';
@@ -7,10 +8,22 @@ import { SettingsModal } from './components/SettingsModal';
 import { SummaryModal } from './components/SummaryModal';
 import { FileImport } from './components/FileImport';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
+import { OnboardingTutorial } from './components/OnboardingTutorial';
+import { ReadingStatsModal, recordSession } from './components/ReadingStats';
+import { DocumentLibrary } from './components/DocumentLibrary';
+import { PresetProfiles } from './components/PresetProfiles';
+import {
+  FolderOpen,
+  BarChart3,
+  Sliders,
+  HelpCircle,
+  Keyboard
+} from 'lucide-react';
 
 function App() {
   const {
-    tokens,
+    tokensLength,
     inputText,
     setInputText,
     showInput,
@@ -18,39 +31,156 @@ function App() {
     isSidePanelOpen,
     toggleSidePanel,
     isZenMode,
-    toggleZenMode
-  } = useReaderStore();
+    toggleZenMode,
+    setCurrentIndex,
+    readingMode,
+  } = useReaderStore(
+      useShallow((state) => ({
+          tokensLength: state.tokens.length,
+          inputText: state.inputText,
+          setInputText: state.setInputText,
+          showInput: state.showInput,
+          setShowInput: state.setShowInput,
+          isSidePanelOpen: state.isSidePanelOpen,
+          toggleSidePanel: state.toggleSidePanel,
+          isZenMode: state.isZenMode,
+          toggleZenMode: state.toggleZenMode,
+          setCurrentIndex: state.setCurrentIndex,
+          readingMode: state.settings.readingMode,
+      }))
+  );
+
+  // Modal states
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isPresetsOpen, setIsPresetsOpen] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  // Track reading session
+  const [sessionStartIndex, setSessionStartIndex] = useState(0);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
 
   const handleStart = () => {
     if (!inputText.trim()) return;
     setShowInput(false);
+    // Use getState() to access current index without subscription
+    setSessionStartIndex(useReaderStore.getState().currentIndex);
+    setSessionStartTime(Date.now());
   };
 
-  const handleBackToInput = () => {
+  const handleBackToInput = useCallback(() => {
+    // Record the session before going back
+    const { currentIndex, wpm, tokens } = useReaderStore.getState();
+
+    if (sessionStartTime && tokens.length > 0) {
+      const wordsRead = currentIndex - sessionStartIndex;
+      const timeSpent = (Date.now() - sessionStartTime) / 1000;
+      const completionRate = (currentIndex / tokens.length) * 100;
+
+      if (wordsRead > 10 && timeSpent > 5) {
+        recordSession(wordsRead, timeSpent, wpm, completionRate);
+      }
+    }
+
     setShowInput(true);
+    setSessionStartTime(null);
+  }, [sessionStartTime, sessionStartIndex, setShowInput]);
+
+  const handleSelectFromLibrary = (content: string, position?: number) => {
+    setInputText(content);
+    if (position && position > 0) {
+      setTimeout(() => {
+        setCurrentIndex(position);
+      }, 100);
+    }
+    setShowInput(false);
+    setSessionStartIndex(position || 0);
+    setSessionStartTime(Date.now());
   };
 
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isZenMode) {
-        toggleZenMode();
+      // Don't trigger if user is typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        if (isZenMode) {
+          toggleZenMode();
+        }
+        // Close any open modals
+        setIsShortcutsOpen(false);
+        setIsStatsOpen(false);
+        setIsLibraryOpen(false);
+        setIsPresetsOpen(false);
+      }
+
+      // ? key opens keyboard shortcuts
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        setIsShortcutsOpen(true);
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isZenMode, toggleZenMode]);
 
-  const isReading = tokens.length > 0 && !showInput;
+  const isReading = tokensLength > 0 && !showInput;
+
+  // Check for reduced motion preference
+  const prefersReducedMotion = typeof window !== 'undefined'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-[#222] text-[#eee] font-sans">
+      <div className={`min-h-screen bg-[#222] text-[#eee] font-sans ${prefersReducedMotion ? '' : 'transition-colors'}`}>
         {/* Navigation */}
-        <nav className="flex justify-center gap-4 md:gap-6 py-4 text-gray-400 text-sm">
-          <a href="#" className="hover:text-white transition-colors">Home</a>
-          <a href="#" className="hover:text-white transition-colors">Settings</a>
-          <a href="#" className="hover:text-white transition-colors">About</a>
-          <a href="#" className="hover:text-white transition-colors">Profile</a>
+        <nav className="flex flex-wrap justify-center gap-2 md:gap-4 py-3 px-4 text-gray-400 text-sm border-b border-gray-800">
+          <button
+            onClick={() => setIsLibraryOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            aria-label="Open document library"
+          >
+            <FolderOpen size={16} />
+            <span className="hidden sm:inline">Library</span>
+          </button>
+          <button
+            onClick={() => setIsPresetsOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            aria-label="Open preset profiles"
+          >
+            <Sliders size={16} />
+            <span className="hidden sm:inline">Presets</span>
+          </button>
+          <button
+            onClick={() => setIsStatsOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            aria-label="View reading statistics"
+          >
+            <BarChart3 size={16} />
+            <span className="hidden sm:inline">Stats</span>
+          </button>
+          <button
+            onClick={() => setIsShortcutsOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            aria-label="View keyboard shortcuts"
+          >
+            <Keyboard size={16} />
+            <span className="hidden sm:inline">Shortcuts</span>
+          </button>
+          <button
+            onClick={() => setShowTutorial(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            aria-label="View tutorial"
+          >
+            <HelpCircle size={16} />
+            <span className="hidden sm:inline">Help</span>
+          </button>
         </nav>
 
         {/* Main Content Area */}
@@ -61,7 +191,7 @@ function App() {
             </h1>
 
             {isReading ? (
-              <div className="animate-fade-in space-y-6">
+              <div className={`space-y-6 ${prefersReducedMotion ? '' : 'animate-fade-in'}`}>
                 <div className="flex justify-end mb-2">
                   <button
                     onClick={toggleSidePanel}
@@ -72,7 +202,7 @@ function App() {
                   </button>
                 </div>
 
-                {useReaderStore.getState().settings.readingMode === 'pacer' ? (
+                {readingMode === 'pacer' ? (
                   <TextPanel variant="embedded" />
                 ) : (
                   <ReaderCanvas />
@@ -83,10 +213,19 @@ function App() {
             ) : (
               <div className="space-y-6">
                 <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="input-text" className="font-bold text-[#eee]">
+                      Input Text
+                    </label>
+                    <button
+                      onClick={() => setIsLibraryOpen(true)}
+                      className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                    >
+                      <FolderOpen size={14} />
+                      Open from Library
+                    </button>
+                  </div>
                   <FileImport />
-                  <label htmlFor="input-text" className="block mb-2 font-bold text-[#eee]">
-                    Input Text
-                  </label>
                   <textarea
                     id="input-text"
                     className="w-full h-[200px] p-4 bg-[#444] border border-[#555] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y font-mono"
@@ -116,9 +255,40 @@ function App() {
             </p>
           </div>
         </div>
+
+        {/* Side Panel */}
         <TextPanel />
+
+        {/* Modals */}
         <SettingsModal />
-        <SummaryModal isOpen={useReaderStore.getState().isSummaryOpen} onClose={useReaderStore.getState().toggleSummary} />
+        <SummaryModal
+          isOpen={useReaderStore.getState().isSummaryOpen}
+          onClose={useReaderStore.getState().toggleSummary}
+        />
+        <KeyboardShortcutsModal
+          isOpen={isShortcutsOpen}
+          onClose={() => setIsShortcutsOpen(false)}
+        />
+        <ReadingStatsModal
+          isOpen={isStatsOpen}
+          onClose={() => setIsStatsOpen(false)}
+        />
+        <DocumentLibrary
+          isOpen={isLibraryOpen}
+          onClose={() => setIsLibraryOpen(false)}
+          onSelectDocument={handleSelectFromLibrary}
+          currentText={inputText}
+        />
+        <PresetProfiles
+          isOpen={isPresetsOpen}
+          onClose={() => setIsPresetsOpen(false)}
+        />
+
+        {/* Onboarding Tutorial */}
+        <OnboardingTutorial
+          onComplete={() => setShowTutorial(false)}
+          forceShow={showTutorial}
+        />
       </div>
     </ErrorBoundary>
   );
