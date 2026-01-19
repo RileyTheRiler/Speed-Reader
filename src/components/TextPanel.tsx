@@ -131,6 +131,7 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
                         onClick={skipToPrevSentence}
                         className="p-4 rounded-full bg-white/5 hover:bg-white/10 transition-all hover:scale-110 active:scale-95 group border border-white/5"
                         title="Previous Sentence"
+                        aria-label="Previous Sentence"
                     >
                         <ChevronLeft size={32} className="group-hover:-translate-x-1 transition-transform opacity-70 group-hover:opacity-100" />
                     </button>
@@ -147,6 +148,7 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
                         onClick={skipToNextSentence}
                         className="p-4 rounded-full bg-white/5 hover:bg-white/10 transition-all hover:scale-110 active:scale-95 group border border-white/5"
                         title="Next Sentence"
+                        aria-label="Next Sentence"
                     >
                         <ChevronRight size={32} className="group-hover:translate-x-1 transition-transform opacity-70 group-hover:opacity-100" />
                     </button>
