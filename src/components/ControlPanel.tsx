@@ -269,25 +269,31 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                 <div className="space-y-6">
                     {/* Format Toggle */}
                     <div className="flex items-center justify-between gap-4">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Format</label>
-                        <div className="flex bg-gray-800 p-1 rounded-lg">
+                        <span id="aspect-ratio-label" className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Format</span>
+                        <div
+                            role="radiogroup"
+                            aria-labelledby="aspect-ratio-label"
+                            className="flex bg-gray-800 p-1 rounded-lg"
+                        >
                             <button
+                                role="radio"
+                                aria-checked={settings.aspectRatio === '16:9'}
                                 onClick={() => updateSettings({ aspectRatio: '16:9' })}
                                 className={clsx(
                                     "px-3 py-1 text-xs font-medium rounded-md transition-colors",
                                     settings.aspectRatio === '16:9' ? "bg-gray-600 text-white" : "text-gray-400 hover:text-gray-300"
                                 )}
-                                aria-pressed={settings.aspectRatio === '16:9'}
                             >
                                 16:9
                             </button>
                             <button
+                                role="radio"
+                                aria-checked={settings.aspectRatio === '9:16'}
                                 onClick={() => updateSettings({ aspectRatio: '9:16' })}
                                 className={clsx(
                                     "px-3 py-1 text-xs font-medium rounded-md transition-colors",
                                     settings.aspectRatio === '9:16' ? "bg-gray-600 text-white" : "text-gray-400 hover:text-gray-300"
                                 )}
-                                aria-pressed={settings.aspectRatio === '9:16'}
                             >
                                 9:16
                             </button>
@@ -425,6 +431,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                             onClick={useReaderStore.getState().toggleZenMode}
                             className="p-2 sm:p-3 rounded-xl bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]"
                             title="Zen Mode"
+                            aria-label="Toggle Zen Mode"
                         >
                             <Maximize size={20} className="sm:w-6 sm:h-6" />
                             <span className="text-[10px] uppercase font-bold tracking-wider">Zen</span>
@@ -434,6 +441,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                             onClick={useReaderStore.getState().toggleSummary}
                             className="p-2 sm:p-3 rounded-xl bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]"
                             title="AI Summary"
+                            aria-label="Open AI Summary"
                         >
                             <Sparkles size={20} className="sm:w-6 sm:h-6 text-purple-400" />
                             <span className="text-[10px] uppercase font-bold tracking-wider">Summary</span>
