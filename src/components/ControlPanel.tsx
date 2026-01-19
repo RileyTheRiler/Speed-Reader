@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
+import { useShallow } from 'zustand/react/shallow';
 import {
     Play,
     Pause,
@@ -19,21 +20,14 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { SettingToggle } from './ui/SettingToggle';
+import { ReadingProgress } from './ReadingProgress';
 
 interface ControlPanelProps {
     onToggleInput: () => void;
 }
 
-const formatTime = (seconds: number): string => {
-    if (seconds < 60) {
-        return `${Math.round(seconds)}s`;
-    }
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.round(seconds % 60);
-    return `${mins}m ${secs}s`;
-};
-
 export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => {
+    // Optimized selector: Excludes currentIndex and other rapidly changing state
     const {
         isPlaying,
         play,
@@ -42,8 +36,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
         reset,
         wpm,
         setWpm,
-        tokens,
-        currentIndex,
+        tokensLength,
         isRecording,
         setIsRecording,
         settings,
@@ -54,11 +47,30 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
         skipBackward,
         skipToNextSentence,
         skipToPrevSentence,
-        getEstimatedTime,
-        getRemainingTime,
-        getProgress,
         toggleSettings
-    } = useReaderStore();
+    } = useReaderStore(
+        useShallow((state) => ({
+            isPlaying: state.isPlaying,
+            play: state.play,
+            pause: state.pause,
+            togglePlay: state.togglePlay,
+            reset: state.reset,
+            wpm: state.wpm,
+            setWpm: state.setWpm,
+            tokensLength: state.tokens.length,
+            isRecording: state.isRecording,
+            setIsRecording: state.setIsRecording,
+            settings: state.settings,
+            updateSettings: state.updateSettings,
+            isFullscreen: state.isFullscreen,
+            setIsFullscreen: state.setIsFullscreen,
+            skipForward: state.skipForward,
+            skipBackward: state.skipBackward,
+            skipToNextSentence: state.skipToNextSentence,
+            skipToPrevSentence: state.skipToPrevSentence,
+            toggleSettings: state.toggleSettings
+        }))
+    );
 
     const toggleFullscreen = useCallback(() => {
         if (!document.fullscreenElement) {
@@ -142,34 +154,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
         return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
     }, [setIsFullscreen]);
 
-    const progress = getProgress();
-    const remainingTime = getRemainingTime();
-    const totalTime = getEstimatedTime();
-
     return (
         <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto p-4 md:p-6 bg-[#2a2a2a] rounded-xl border border-gray-800 shadow-lg mt-6">
 
-            {/* Stats Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-gray-400 bg-[#222] px-4 py-2 rounded-lg">
-                <div className="flex items-center gap-4">
-                    <span>
-                        Word <strong className="text-white">{currentIndex + 1}</strong> of <strong className="text-white">{tokens.length}</strong>
-                    </span>
-                    <span className="text-gray-600">|</span>
-                    <span>
-                        <strong className="text-white">{progress.toFixed(0)}%</strong> complete
-                    </span>
-                </div>
-                <div className="flex items-center gap-4">
-                    <span>
-                        Remaining: <strong className="text-white">{formatTime(remainingTime)}</strong>
-                    </span>
-                    <span className="text-gray-600">|</span>
-                    <span>
-                        Total: <strong className="text-white">{formatTime(totalTime)}</strong>
-                    </span>
-                </div>
-            </div>
+            {/* Stats Bar - Extracted to prevent re-renders of the entire panel */}
+            <ReadingProgress />
 
             {/* Main Controls */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -472,7 +461,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
 
                         <button
                             onClick={() => setIsRecording(true)}
-                            disabled={isRecording || tokens.length === 0}
+                            disabled={isRecording || tokensLength === 0}
                             className={clsx(
                                 "flex items-center gap-2 px-6 py-2 rounded-lg text-sm text-white transition-all font-semibold shadow-lg",
                                 isRecording ? "bg-red-900 animate-pulse" : "bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/20"
