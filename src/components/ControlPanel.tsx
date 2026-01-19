@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
+import { useShallow } from 'zustand/react/shallow';
 import {
     Play,
     Pause,
@@ -18,21 +19,15 @@ import {
     Sparkles
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { SettingToggle } from './ui/SettingToggle';
+import { ReadingProgress } from './ReadingProgress';
 
 interface ControlPanelProps {
     onToggleInput: () => void;
 }
 
-const formatTime = (seconds: number): string => {
-    if (seconds < 60) {
-        return `${Math.round(seconds)}s`;
-    }
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.round(seconds % 60);
-    return `${mins}m ${secs}s`;
-};
-
 export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => {
+    // Optimized selector: Excludes currentIndex and other rapidly changing state
     const {
         isPlaying,
         play,
@@ -41,8 +36,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
         reset,
         wpm,
         setWpm,
-        tokens,
-        currentIndex,
+        tokensLength,
         isRecording,
         setIsRecording,
         settings,
@@ -53,11 +47,30 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
         skipBackward,
         skipToNextSentence,
         skipToPrevSentence,
-        getEstimatedTime,
-        getRemainingTime,
-        getProgress,
         toggleSettings
-    } = useReaderStore();
+    } = useReaderStore(
+        useShallow((state) => ({
+            isPlaying: state.isPlaying,
+            play: state.play,
+            pause: state.pause,
+            togglePlay: state.togglePlay,
+            reset: state.reset,
+            wpm: state.wpm,
+            setWpm: state.setWpm,
+            tokensLength: state.tokens.length,
+            isRecording: state.isRecording,
+            setIsRecording: state.setIsRecording,
+            settings: state.settings,
+            updateSettings: state.updateSettings,
+            isFullscreen: state.isFullscreen,
+            setIsFullscreen: state.setIsFullscreen,
+            skipForward: state.skipForward,
+            skipBackward: state.skipBackward,
+            skipToNextSentence: state.skipToNextSentence,
+            skipToPrevSentence: state.skipToPrevSentence,
+            toggleSettings: state.toggleSettings
+        }))
+    );
 
     const toggleFullscreen = useCallback(() => {
         if (!document.fullscreenElement) {
@@ -141,34 +154,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
         return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
     }, [setIsFullscreen]);
 
-    const progress = getProgress();
-    const remainingTime = getRemainingTime();
-    const totalTime = getEstimatedTime();
-
     return (
         <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto p-4 md:p-6 bg-[#2a2a2a] rounded-xl border border-gray-800 shadow-lg mt-6">
 
-            {/* Stats Bar */}
-            <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-gray-400 bg-[#222] px-4 py-2 rounded-lg">
-                <div className="flex items-center gap-4">
-                    <span>
-                        Word <strong className="text-white">{currentIndex + 1}</strong> of <strong className="text-white">{tokens.length}</strong>
-                    </span>
-                    <span className="text-gray-600">|</span>
-                    <span>
-                        <strong className="text-white">{progress.toFixed(0)}%</strong> complete
-                    </span>
-                </div>
-                <div className="flex items-center gap-4">
-                    <span>
-                        Remaining: <strong className="text-white">{formatTime(remainingTime)}</strong>
-                    </span>
-                    <span className="text-gray-600">|</span>
-                    <span>
-                        Total: <strong className="text-white">{formatTime(totalTime)}</strong>
-                    </span>
-                </div>
-            </div>
+            {/* Stats Bar - Extracted to prevent re-renders of the entire panel */}
+            <ReadingProgress />
 
             {/* Main Controls */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -305,57 +295,34 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                     </div>
 
                     {/* Pause at Sentence End */}
-                    <label className="flex items-center justify-between cursor-pointer group">
-                        <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">Pause at Sentence End</span>
-                        <button
-                            role="switch"
-                            aria-checked={settings.pauseAtEndOfSentence}
-                            onClick={() => updateSettings({ pauseAtEndOfSentence: !settings.pauseAtEndOfSentence })}
-                            className={clsx(
-                                "w-11 h-6 rounded-full transition-colors relative",
-                                settings.pauseAtEndOfSentence ? "bg-blue-600" : "bg-gray-600"
-                            )}
-                        >
-                            <div
-                                className={clsx(
-                                    "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm",
-                                    settings.pauseAtEndOfSentence ? "translate-x-5" : "translate-x-0"
-                                )}
-                            />
-                        </button>
-                    </label>
+                    <SettingToggle
+                        label="Pause at Sentence End"
+                        checked={settings.pauseAtEndOfSentence}
+                        onChange={(v) => updateSettings({ pauseAtEndOfSentence: v })}
+                        className="bg-transparent hover:bg-transparent p-0"
+                    />
 
                     {/* Show Reticle Toggle */}
-                    <label className="flex items-center justify-between cursor-pointer group">
-                        <span className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors flex items-center gap-2">
-                            {settings.showReticle ? <Eye size={16} /> : <EyeOff size={16} />}
-                            Show Reticle Guides
-                        </span>
-                        <button
-                            role="switch"
-                            aria-checked={settings.showReticle}
-                            onClick={() => updateSettings({ showReticle: !settings.showReticle })}
-                            className={clsx(
-                                "w-11 h-6 rounded-full transition-colors relative",
-                                settings.showReticle ? "bg-blue-600" : "bg-gray-600"
-                            )}
-                        >
-                            <div
-                                className={clsx(
-                                    "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform shadow-sm",
-                                    settings.showReticle ? "translate-x-5" : "translate-x-0"
-                                )}
-                            />
-                        </button>
-                    </label>
+                    <SettingToggle
+                        label={
+                            <span className="flex items-center gap-2">
+                                {settings.showReticle ? <Eye size={16} /> : <EyeOff size={16} />}
+                                Show Reticle Guides
+                            </span>
+                        }
+                        checked={settings.showReticle}
+                        onChange={(v) => updateSettings({ showReticle: v })}
+                        className="bg-transparent hover:bg-transparent p-0"
+                    />
 
                     {/* Font Size Slider */}
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Font Size</label>
+                            <label htmlFor="cp-font-size" className="text-xs font-semibold text-gray-500 uppercase tracking-widest cursor-pointer">Font Size</label>
                             <span className="text-sm text-white font-mono">{settings.fontSize}px</span>
                         </div>
                         <input
+                            id="cp-font-size"
                             type="range"
                             min="32"
                             max="128"
@@ -370,12 +337,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                     {/* Chunk Size Slider */}
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Chunk Size</label>
+                            <label htmlFor="cp-chunk-size" className="text-xs font-semibold text-gray-500 uppercase tracking-widest cursor-pointer">Chunk Size</label>
                             <span className="text-sm text-white font-mono">
                                 {settings.chunkSize === 1 ? '1 word' : `${settings.chunkSize} words`}
                             </span>
                         </div>
                         <input
+                            id="cp-chunk-size"
                             type="range"
                             min="1"
                             max="5"
@@ -393,8 +361,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                         <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Colors</label>
                         <div className="grid grid-cols-3 gap-2">
                             <div className="space-y-1">
-                                <label className="text-xs text-gray-400">Background</label>
+                                <label htmlFor="cp-bg-color" className="text-xs text-gray-400 cursor-pointer">Background</label>
                                 <input
+                                    id="cp-bg-color"
                                     type="color"
                                     value={settings.backgroundColor}
                                     onChange={(e) => updateSettings({ backgroundColor: e.target.value })}
@@ -403,8 +372,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs text-gray-400">Text</label>
+                                <label htmlFor="cp-text-color" className="text-xs text-gray-400 cursor-pointer">Text</label>
                                 <input
+                                    id="cp-text-color"
                                     type="color"
                                     value={settings.textColor}
                                     onChange={(e) => updateSettings({ textColor: e.target.value })}
@@ -413,8 +383,9 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs text-gray-400">Highlight</label>
+                                <label htmlFor="cp-highlight-color" className="text-xs text-gray-400 cursor-pointer">Highlight</label>
                                 <input
+                                    id="cp-highlight-color"
                                     type="color"
                                     value={settings.highlightColor}
                                     onChange={(e) => updateSettings({ highlightColor: e.target.value })}
@@ -490,7 +461,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
 
                         <button
                             onClick={() => setIsRecording(true)}
-                            disabled={isRecording || tokens.length === 0}
+                            disabled={isRecording || tokensLength === 0}
                             className={clsx(
                                 "flex items-center gap-2 px-6 py-2 rounded-lg text-sm text-white transition-all font-semibold shadow-lg",
                                 isRecording ? "bg-red-900 animate-pulse" : "bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/20"
