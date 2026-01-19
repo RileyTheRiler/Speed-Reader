@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useRef, memo, useCallback } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
+import { useShallow } from 'zustand/react/shallow';
 import type { Token } from '../utils/tokenizer';
 import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -65,7 +66,19 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
         getCurrentSentence,
         skipToNextSentence,
         skipToPrevSentence
-    } = useReaderStore();
+    } = useReaderStore(useShallow(state => ({
+        tokens: state.tokens,
+        currentIndex: state.currentIndex,
+        isSidePanelOpen: state.isSidePanelOpen,
+        toggleSidePanel: state.toggleSidePanel,
+        setCurrentIndex: state.setCurrentIndex,
+        play: state.play,
+        settings: state.settings,
+        isPlaying: state.isPlaying,
+        getCurrentSentence: state.getCurrentSentence,
+        skipToNextSentence: state.skipToNextSentence,
+        skipToPrevSentence: state.skipToPrevSentence
+    })));
 
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -76,10 +89,10 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
         textColor,
     } = settings;
 
-    const handleTokenClick = (index: number) => {
+    const handleTokenClick = useCallback((index: number) => {
         setCurrentIndex(index);
         play();
-    };
+    }, [setCurrentIndex, play]);
 
     // Auto-scroll for Pacer Mode
     useEffect(() => {
