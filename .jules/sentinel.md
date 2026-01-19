@@ -1,3 +1,7 @@
+## 2025-02-18 - [DoS Protection via Input Sanitization]
+**Vulnerability:** Unbounded input text could lead to browser freezes (DoS) when tokenizing or rendering.
+**Learning:** Client-side processing of large texts requires strict limits even if no backend exists. 50k chars is a safe balance for this app's architecture.
+**Prevention:** Always sanitize and truncate inputs at the entry point (Store or Parser).
 ## 2024-05-22 - [Missing Security Utilities]
 **Vulnerability:** Input sanitization and length limits were missing from file parsing and text input, risking DoS and potential injection.
 **Learning:** Security utilities like `sanitizeInput` and `MAX_INPUT_LENGTH` were referenced in project memory but absent in the codebase.
