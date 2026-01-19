@@ -1,3 +1,7 @@
+## 2024-05-22 - Input Length & DoS Protection
+**Vulnerability:** Client-side file parsing (PDF/EPUB) and text input had no length limits, allowing memory exhaustion (DoS) via large inputs.
+**Learning:** Client-side apps are vulnerable to "zip bomb" style attacks where a small file expands to massive text, crashing the browser.
+**Prevention:** Enforce `MAX_INPUT_LENGTH` at the entry point (parsing loop) and sanitization layer.
 ## 2025-02-18 - [DoS Protection via Input Sanitization]
 **Vulnerability:** Unbounded input text could lead to browser freezes (DoS) when tokenizing or rendering.
 **Learning:** Client-side processing of large texts requires strict limits even if no backend exists. 50k chars is a safe balance for this app's architecture.

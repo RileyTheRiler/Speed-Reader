@@ -38,6 +38,8 @@ export const parsePdf = async (file: File): Promise<string> => {
     const numPages = pdf.numPages;
 
     for (let i = 1; i <= numPages; i++) {
+        if (fullText.length >= MAX_INPUT_LENGTH) break;
+
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
         const pageText = textContent.items
@@ -60,6 +62,7 @@ export const parsePdf = async (file: File): Promise<string> => {
         }
     }
 
+    return fullText.slice(0, MAX_INPUT_LENGTH);
     return sanitizeInput(fullText);
 };
 
@@ -86,6 +89,8 @@ export const parseEpub = async (file: File): Promise<string> => {
     const spineItems = spine.items || [];
 
     for (const item of spineItems) {
+        if (fullText.length >= MAX_INPUT_LENGTH) break;
+
         // Load the chapter
         // item can be loaded
         // Be careful: 'book.load' might load the whole thing into DOM.
