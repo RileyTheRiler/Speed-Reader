@@ -1,7 +1,13 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useRef, memo, useLayoutEffect } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
+import { useShallow } from 'zustand/react/shallow';
 import type { Token } from '../utils/tokenizer';
 import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
+
+// Class names for imperative updates to avoid React re-renders
+const BASE_CLASSES = 'transition-colors duration-100 px-1 rounded cursor-pointer';
+const ACTIVE_CLASSES = ['bg-blue-600', 'text-white', 'font-bold', 'scale-105'];
+const INACTIVE_CLASSES = ['hover:bg-[#383838]'];
 
 interface TokenSpanProps {
     token: Token;
@@ -11,24 +17,13 @@ interface TokenSpanProps {
 }
 
 const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }) => {
-    const ref = useRef<HTMLSpanElement>(null);
-
-    useEffect(() => {
-        if (isActive && ref.current) {
-            ref.current.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center',
-            });
-        }
-    }, [isActive]);
+    // Initial render respects the prop, subsequent updates are handled via DOM manipulation in ReadingView
+    const activeClass = isActive ? ACTIVE_CLASSES.join(' ') : INACTIVE_CLASSES.join(' ');
 
     return (
         <span
-            ref={ref}
-            className={`
-                transition-colors duration-100 px-1 rounded cursor-pointer
-                ${isActive ? 'bg-blue-600 text-white font-bold scale-105' : 'hover:bg-[#383838]'}
-            `}
+            data-index={index}
+            className={`${BASE_CLASSES} ${activeClass}`}
             onClick={() => onTokenClick(index)}
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -48,118 +43,168 @@ const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }
 
 TokenSpan.displayName = 'TokenSpan';
 
-interface TextPanelProps {
-    variant?: 'side-panel' | 'embedded';
-}
-
-export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) => {
+// --- Pause Overlay Component ---
+const PauseOverlay = memo(() => {
     const {
-        tokens,
-        currentIndex,
-        isSidePanelOpen,
-        toggleSidePanel,
-        setCurrentIndex,
-        play,
         settings,
-        isPlaying,
+        play,
         getCurrentSentence,
         skipToNextSentence,
         skipToPrevSentence
-    } = useReaderStore();
+    } = useReaderStore(useShallow(state => ({
+        settings: state.settings,
+        play: state.play,
+        getCurrentSentence: state.getCurrentSentence,
+        skipToNextSentence: state.skipToNextSentence,
+        skipToPrevSentence: state.skipToPrevSentence,
+        // We need currentIndex implicitly for getCurrentSentence, but useReaderStore selector
+        // logic is tricky with functions. Zustand functions access state via get().
+        // BUT PauseOverlay needs to re-render when currentIndex changes (to show new sentence).
+        // So we MUST subscribe to currentIndex.
+        currentIndex: state.currentIndex
+    })));
+
+    const { backgroundColor, textColor, fontFamily } = settings;
+    const sentence = getCurrentSentence();
+
+    return (
+        <div
+            className="w-full h-full flex flex-col items-center justify-center p-8 relative transition-all"
+            style={{ backgroundColor, color: textColor }}
+        >
+            {/* Sentence Context */}
+            <div className="mb-8 text-center max-w-2xl animate-fade-in px-6 py-8 bg-black/20 rounded-xl backdrop-blur-sm border border-white/5 shadow-2xl">
+                <p
+                    className="text-xl md:text-2xl leading-relaxed italic opacity-90"
+                    style={{ fontFamily: fontFamily === 'dyslexic' ? 'OpenDyslexic' : undefined }}
+                >
+                    "{sentence}"
+                </p>
+            </div>
+
+            {/* Navigation Controls */}
+            <div className="flex items-center gap-8">
+                <button
+                    onClick={skipToPrevSentence}
+                    className="p-4 rounded-full bg-white/5 hover:bg-white/10 transition-all hover:scale-110 active:scale-95 group border border-white/5"
+                    title="Previous Sentence"
+                    aria-label="Previous Sentence"
+                >
+                    <ChevronLeft size={32} className="group-hover:-translate-x-1 transition-transform opacity-70 group-hover:opacity-100" />
+                </button>
+
+                <button
+                    onClick={play}
+                    className="px-8 py-4 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-lg hover:shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
+                >
+                    <Play size={24} fill="currentColor" />
+                    RESUME
+                </button>
+
+                <button
+                    onClick={skipToNextSentence}
+                    className="p-4 rounded-full bg-white/5 hover:bg-white/10 transition-all hover:scale-110 active:scale-95 group border border-white/5"
+                    title="Next Sentence"
+                    aria-label="Next Sentence"
+                >
+                    <ChevronRight size={32} className="group-hover:translate-x-1 transition-transform opacity-70 group-hover:opacity-100" />
+                </button>
+            </div>
+
+            <div className="absolute bottom-6 text-xs opacity-30 uppercase tracking-[0.2em] font-medium">
+                Paused
+            </div>
+        </div>
+    );
+});
+PauseOverlay.displayName = 'PauseOverlay';
+
+// --- Reading View Component (Optimized) ---
+interface ReadingViewProps {
+    variant: 'side-panel' | 'embedded';
+}
+
+const ReadingView = memo(({ variant }: ReadingViewProps) => {
+    const {
+        tokens,
+        settings,
+        toggleSidePanel,
+        setCurrentIndex
+    } = useReaderStore(useShallow(state => ({
+        tokens: state.tokens,
+        settings: state.settings,
+        toggleSidePanel: state.toggleSidePanel,
+        setCurrentIndex: state.setCurrentIndex
+    })));
 
     const containerRef = useRef<HTMLDivElement>(null);
+    // Track the currently active index ref to avoid closures issues
+    const activeIndexRef = useRef<number>(useReaderStore.getState().currentIndex);
 
     const {
         fontFamily,
-        readingMode,
         backgroundColor,
         textColor,
     } = settings;
 
     const handleTokenClick = (index: number) => {
+        const { play } = useReaderStore.getState();
         setCurrentIndex(index);
         play();
     };
 
-    // Auto-scroll for Pacer Mode
-    useEffect(() => {
-        if (readingMode === 'pacer' && containerRef.current && tokens[currentIndex]) {
-            const currentCaret = containerRef.current.querySelector('[aria-current="true"]');
-            if (currentCaret) {
-                currentCaret.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                });
-            }
+    // Helper to update token styles
+    const updateTokenStyle = (element: Element | null, active: boolean) => {
+        if (!element) return;
+
+        if (active) {
+            element.classList.remove(...INACTIVE_CLASSES);
+            element.classList.add(...ACTIVE_CLASSES);
+            element.setAttribute('aria-current', 'true');
+            element.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+            });
+        } else {
+            element.classList.remove(...ACTIVE_CLASSES);
+            element.classList.add(...INACTIVE_CLASSES);
+            element.removeAttribute('aria-current');
         }
-    }, [currentIndex, readingMode, tokens]);
+    };
 
-    if (variant === 'side-panel' && !isSidePanelOpen) return null;
+    // Initial Sync and Subscription
+    useLayoutEffect(() => {
+        // Initial highlight
+        const initialIndex = useReaderStore.getState().currentIndex;
+        activeIndexRef.current = initialIndex;
 
-    if (tokens.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center p-8 h-full" style={{ backgroundColor, color: textColor }}>
-                <span className="text-lg opacity-50">No text loaded</span>
-            </div>
-        );
-    }
+        const currentEl = containerRef.current?.querySelector(`[data-index="${initialIndex}"]`);
+        if (currentEl) updateTokenStyle(currentEl, true);
 
-    // --- PAUSE OVERLAY (For RSVP Modes) ---
-    // Only show if paused, not in pacer mode, and we have text
-    const showPauseOverlay = !isPlaying && readingMode !== 'pacer' && tokens.length > 0;
+        // Subscribe to store changes
+        const unsubscribe = useReaderStore.subscribe((state, prevState) => {
+            const newIndex = state.currentIndex;
+            const oldIndex = prevState.currentIndex;
 
-    if (showPauseOverlay) {
-        const sentence = getCurrentSentence();
-        return (
-            <div
-                className="w-full h-full flex flex-col items-center justify-center p-8 relative transition-all"
-                style={{ backgroundColor, color: textColor }}
-            >
-                {/* Sentence Context */}
-                <div className="mb-8 text-center max-w-2xl animate-fade-in px-6 py-8 bg-black/20 rounded-xl backdrop-blur-sm border border-white/5 shadow-2xl">
-                    <p
-                        className="text-xl md:text-2xl leading-relaxed italic opacity-90"
-                        style={{ fontFamily: fontFamily === 'dyslexic' ? 'OpenDyslexic' : undefined }}
-                    >
-                        "{sentence}"
-                    </p>
-                </div>
+            if (newIndex !== oldIndex) {
+                // Update DOM
+                if (containerRef.current) {
+                    const prevEl = containerRef.current.querySelector(`[data-index="${oldIndex}"]`);
+                    const nextEl = containerRef.current.querySelector(`[data-index="${newIndex}"]`);
 
-                {/* Navigation Controls */}
-                <div className="flex items-center gap-8">
-                    <button
-                        onClick={skipToPrevSentence}
-                        className="p-4 rounded-full bg-white/5 hover:bg-white/10 transition-all hover:scale-110 active:scale-95 group border border-white/5"
-                        title="Previous Sentence"
-                        aria-label="Previous Sentence"
-                    >
-                        <ChevronLeft size={32} className="group-hover:-translate-x-1 transition-transform opacity-70 group-hover:opacity-100" />
-                    </button>
+                    updateTokenStyle(prevEl, false);
+                    updateTokenStyle(nextEl, true);
+                }
+                activeIndexRef.current = newIndex;
+            }
+        });
 
-                    <button
-                        onClick={play}
-                        className="px-8 py-4 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-lg hover:shadow-blue-500/30 transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
-                    >
-                        <Play size={24} fill="currentColor" />
-                        RESUME
-                    </button>
+        return () => {
+            unsubscribe();
+        };
+    }, [tokens]); // Re-run if tokens change (new list rendered)
 
-                    <button
-                        onClick={skipToNextSentence}
-                        className="p-4 rounded-full bg-white/5 hover:bg-white/10 transition-all hover:scale-110 active:scale-95 group border border-white/5"
-                        title="Next Sentence"
-                        aria-label="Next Sentence"
-                    >
-                        <ChevronRight size={32} className="group-hover:translate-x-1 transition-transform opacity-70 group-hover:opacity-100" />
-                    </button>
-                </div>
-
-                <div className="absolute bottom-6 text-xs opacity-30 uppercase tracking-[0.2em] font-medium">
-                    Paused
-                </div>
-            </div>
-        );
-    }
+    // Pacer Mode handling is covered by the subscription above (it updates styles and scrolls)
 
     const baseClasses = variant === 'side-panel'
         ? "fixed inset-y-0 right-0 w-80 border-l shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out"
@@ -169,6 +214,9 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
         fontFamily === 'mono' ? 'font-mono' : 'font-sans';
 
     const dysFont = fontFamily === 'dyslexic' ? 'OpenDyslexic' : undefined;
+
+    // We capture the initial index for the first render
+    const renderTimeIndex = useReaderStore.getState().currentIndex;
 
     return (
         <div
@@ -203,7 +251,7 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
                             key={token.id}
                             token={token}
                             index={index}
-                            isActive={index === currentIndex}
+                            isActive={index === renderTimeIndex}
                             onTokenClick={handleTokenClick}
                         />
                     ))}
@@ -215,4 +263,49 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
             </div>
         </div>
     );
+});
+ReadingView.displayName = 'ReadingView';
+
+// --- Main TextPanel Component ---
+interface TextPanelProps {
+    variant?: 'side-panel' | 'embedded';
+}
+
+export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) => {
+    const {
+        isSidePanelOpen,
+        isPlaying,
+        readingMode,
+        tokensLength,
+        backgroundColor,
+        textColor
+    } = useReaderStore(useShallow(state => ({
+        isSidePanelOpen: state.isSidePanelOpen,
+        isPlaying: state.isPlaying,
+        readingMode: state.settings.readingMode,
+        tokensLength: state.tokens.length,
+        backgroundColor: state.settings.backgroundColor,
+        textColor: state.settings.textColor
+    })));
+
+    // Early return for side panel visibility
+    if (variant === 'side-panel' && !isSidePanelOpen) return null;
+
+    if (tokensLength === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center p-8 h-full" style={{ backgroundColor, color: textColor }}>
+                <span className="text-lg opacity-50">No text loaded</span>
+            </div>
+        );
+    }
+
+    // Check if we should show Pause Overlay
+    // We only show it in embedded mode (if ever), not in the side panel where we want to see the list
+    const showPauseOverlay = !isPlaying && readingMode !== 'pacer' && tokensLength > 0 && variant !== 'side-panel';
+
+    if (showPauseOverlay) {
+        return <PauseOverlay />;
+    }
+
+    return <ReadingView variant={variant} />;
 };
