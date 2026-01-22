@@ -1,6 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import ePub from 'epubjs';
-import { MAX_INPUT_LENGTH } from './security';
 import { MAX_INPUT_LENGTH, sanitizeInput } from './security';
 
 // Types for EPUB.js
@@ -44,15 +43,7 @@ export const parsePdf = async (file: File): Promise<string> => {
         const textContent = await page.getTextContent();
         const pageText = textContent.items
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .map((item: any) => item.str)
-            .join(' ');
-        fullText += pageText + '\n\n';
-
-        if (fullText.length > MAX_INPUT_LENGTH) break;
-    }
-
-    return fullText.slice(0, MAX_INPUT_LENGTH);
-            .map((item) => ('str' in item ? (item as { str: string }).str : ''))
+            .map((item: any) => ('str' in item ? item.str : ''))
             .join(' ');
         fullText += pageText + '\n\n';
 
@@ -62,7 +53,6 @@ export const parsePdf = async (file: File): Promise<string> => {
         }
     }
 
-    return fullText.slice(0, MAX_INPUT_LENGTH);
     return sanitizeInput(fullText);
 };
 
@@ -81,32 +71,14 @@ export const parseEpub = async (file: File): Promise<string> => {
     // Note: older epubjs versions used .each(), newer might use for-loop on spine.items
     // Let's safe-guard this.
 
-    // We can just load the entire book text? No, that's heavy.
-    // Let's iterate spine items.
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const spineItems = (spine as any).items || [];
-    const spineItems = spine.items || [];
 
     for (const item of spineItems) {
         if (fullText.length >= MAX_INPUT_LENGTH) break;
 
-        // Load the chapter
-        // item can be loaded
-        // Be careful: 'book.load' might load the whole thing into DOM.
-        // We want the text content.
-        // 'item.load(book.load.bind(book))' returns a document?
-
         try {
-            // Using the raw section load method if available, or just book.load(item.href)
-            // But we have the ArrayBuffer book here.
-            // Let's stick to the official API: book.load(item.href) returns a Promise<Document>
-
-            // Wait, we passed ArrayBuffer to ePub(), so it's "opened".
-            // We can just iterate the spine and get content.
-
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const doc = await book.load(item.href) as any;
             const doc = await book.load(item.href) as unknown as EpubDocument;
             // doc is a DOM Document / XML Document
             if (doc && doc.body) {
@@ -120,13 +92,11 @@ export const parseEpub = async (file: File): Promise<string> => {
                 break;
             }
 
-            if (fullText.length > MAX_INPUT_LENGTH) break;
         } catch (err) {
             console.warn(`Failed to parse chapter ${item.href}:`, err);
         }
     }
 
-    return fullText.slice(0, MAX_INPUT_LENGTH);
     return sanitizeInput(fullText);
 };
 
@@ -144,7 +114,6 @@ export const parseFile = async (file: File): Promise<string> => {
 
     // Default: Text
     const text = await file.text();
-    return text.slice(0, MAX_INPUT_LENGTH);
     // sanitizeInput will handle truncation
     return sanitizeInput(text);
 };
