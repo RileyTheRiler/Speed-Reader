@@ -18,7 +18,8 @@ import {
   BarChart3,
   Sliders,
   HelpCircle,
-  Keyboard
+  Keyboard,
+  Trash2
 } from 'lucide-react';
 
 function App() {
@@ -217,13 +218,26 @@ function App() {
                     <label htmlFor="input-text" className="font-bold text-[#eee]">
                       Input Text
                     </label>
-                    <button
-                      onClick={() => setIsLibraryOpen(true)}
-                      className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                    >
-                      <FolderOpen size={14} />
-                      Open from Library
-                    </button>
+                    <div className="flex items-center gap-4">
+                      {inputText.length > 0 && (
+                        <button
+                          onClick={() => setInputText('')}
+                          className="text-xs text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors"
+                          aria-label="Clear input text"
+                          title="Clear text"
+                        >
+                          <Trash2 size={14} />
+                          Clear
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setIsLibraryOpen(true)}
+                        className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                      >
+                        <FolderOpen size={14} />
+                        Open from Library
+                      </button>
+                    </div>
                   </div>
                   <FileImport />
                   <textarea
