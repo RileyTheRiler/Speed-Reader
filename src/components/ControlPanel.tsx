@@ -268,26 +268,28 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-[#222] p-4 rounded-lg">
                 <div className="space-y-6">
                     {/* Format Toggle */}
-                    <div className="flex items-center justify-between gap-4">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Format</label>
+                    <div className="flex items-center justify-between gap-4" role="radiogroup" aria-labelledby="format-label">
+                        <label id="format-label" className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Format</label>
                         <div className="flex bg-gray-800 p-1 rounded-lg">
                             <button
+                                role="radio"
+                                aria-checked={settings.aspectRatio === '16:9'}
                                 onClick={() => updateSettings({ aspectRatio: '16:9' })}
                                 className={clsx(
                                     "px-3 py-1 text-xs font-medium rounded-md transition-colors",
                                     settings.aspectRatio === '16:9' ? "bg-gray-600 text-white" : "text-gray-400 hover:text-gray-300"
                                 )}
-                                aria-pressed={settings.aspectRatio === '16:9'}
                             >
                                 16:9
                             </button>
                             <button
+                                role="radio"
+                                aria-checked={settings.aspectRatio === '9:16'}
                                 onClick={() => updateSettings({ aspectRatio: '9:16' })}
                                 className={clsx(
                                     "px-3 py-1 text-xs font-medium rounded-md transition-colors",
                                     settings.aspectRatio === '9:16' ? "bg-gray-600 text-white" : "text-gray-400 hover:text-gray-300"
                                 )}
-                                aria-pressed={settings.aspectRatio === '9:16'}
                             >
                                 9:16
                             </button>
