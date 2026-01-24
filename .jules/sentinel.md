@@ -18,3 +18,7 @@
 **Vulnerability:** The application lacked HTTP security headers (X-Frame-Options, X-Content-Type-Options, etc.) which leaves it vulnerable to clickjacking, MIME sniffing, and other common web attacks.
 **Learning:** Static site deployments (like Vercel) often default to open configurations. Security headers must be explicitly configured in platform-specific config files (vercel.json) or edge middleware.
 **Prevention:** Always verify and configure `vercel.json` or `netlify.toml` with standard security headers as part of the initial project setup.
+## 2025-02-24 - Silent Corruption of Security Controls
+**Vulnerability:** Critical security constants (`MAX_INPUT_LENGTH`) and functions (`sanitizeInput`) were duplicated/corrupted due to poor merge conflict resolution, leading to syntax errors and undefined runtime behavior.
+**Learning:** Security controls can be rendered ineffective not by malicious intent but by git merge errors. Duplicate definitions can confuse the compiler or runtime, or just break the build, preventing security fixes from deploying.
+**Prevention:** Implement strict linting rules or pre-commit checks that detect duplicate identifiers in critical utility files. Always manually verify the integrity of `security.ts` after merging.
