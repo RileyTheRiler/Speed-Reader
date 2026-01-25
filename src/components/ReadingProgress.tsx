@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -12,36 +12,81 @@ const formatTime = (seconds: number): string => {
 };
 
 export const ReadingProgress: React.FC = () => {
-    const { currentIndex, tokensLength, wpm } = useReaderStore(
+    // Optimized: Only re-render when structural data changes (tokens length)
+    // currentIndex and wpm are handled imperatively to avoid re-renders
+    const { tokensLength } = useReaderStore(
         useShallow((state) => ({
-            currentIndex: state.currentIndex,
             tokensLength: state.tokens.length,
-            wpm: state.wpm,
         }))
     );
 
-    const progress = tokensLength > 0 ? (currentIndex / tokensLength) * 100 : 0;
-    const totalTime = tokensLength > 0 && wpm > 0 ? (tokensLength / wpm) * 60 : 0;
-    const remainingTime = tokensLength > 0 && wpm > 0 ? ((tokensLength - currentIndex) / wpm) * 60 : 0;
+    const currentIndexRef = useRef<HTMLElement>(null);
+    const progressRef = useRef<HTMLElement>(null);
+    const remainingTimeRef = useRef<HTMLElement>(null);
+    const totalTimeRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        // Direct DOM manipulation for high-frequency updates
+        const updateProgress = () => {
+            const state = useReaderStore.getState();
+            const { currentIndex, tokens, wpm } = state;
+            const len = tokens.length;
+
+            if (currentIndexRef.current) {
+                currentIndexRef.current.textContent = String(currentIndex + 1);
+            }
+
+            if (progressRef.current) {
+                const progress = len > 0 ? (currentIndex / len) * 100 : 0;
+                progressRef.current.textContent = `${progress.toFixed(0)}%`;
+            }
+
+            if (remainingTimeRef.current) {
+                const remaining = len > 0 && wpm > 0 ? ((len - currentIndex) / wpm) * 60 : 0;
+                remainingTimeRef.current.textContent = formatTime(remaining);
+            }
+
+            if (totalTimeRef.current) {
+                const total = len > 0 && wpm > 0 ? (len / wpm) * 60 : 0;
+                totalTimeRef.current.textContent = formatTime(total);
+            }
+        };
+
+        // Initial sync
+        updateProgress();
+
+        // Subscribe to store updates
+        const unsubscribe = useReaderStore.subscribe((state, prevState) => {
+            if (
+                state.currentIndex !== prevState.currentIndex ||
+                state.wpm !== prevState.wpm ||
+                state.tokens.length !== prevState.tokens.length
+            ) {
+                updateProgress();
+            }
+        });
+
+        return unsubscribe;
+    }, []);
 
     return (
         <div className="flex flex-wrap items-center justify-between gap-4 text-sm text-gray-400 bg-[#222] px-4 py-2 rounded-lg">
             <div className="flex items-center gap-4">
                 <span>
-                    Word <strong className="text-white">{currentIndex + 1}</strong> of <strong className="text-white">{tokensLength}</strong>
+                    Word <strong ref={currentIndexRef} className="text-white" data-testid="progress-word-count">1</strong> of <strong className="text-white">{tokensLength}</strong>
                 </span>
                 <span className="text-gray-600">|</span>
                 <span>
-                    <strong className="text-white">{progress.toFixed(0)}%</strong> complete
+                    <strong ref={progressRef} className="text-white" data-testid="progress-percent">0%</strong> complete
                 </span>
             </div>
             <div className="flex items-center gap-4">
                 <span>
-                    Remaining: <strong className="text-white">{formatTime(remainingTime)}</strong>
+                    Remaining: <strong ref={remainingTimeRef} className="text-white" data-testid="progress-remaining">0s</strong>
                 </span>
                 <span className="text-gray-600">|</span>
                 <span>
-                    Total: <strong className="text-white">{formatTime(totalTime)}</strong>
+                    Total: <strong ref={totalTimeRef} className="text-white">0s</strong>
                 </span>
             </div>
         </div>
