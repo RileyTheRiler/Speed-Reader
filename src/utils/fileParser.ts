@@ -1,6 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import ePub from 'epubjs';
-import { MAX_INPUT_LENGTH } from './security';
 import { MAX_INPUT_LENGTH, sanitizeInput } from './security';
 
 // Types for EPUB.js
@@ -51,18 +50,6 @@ export const parsePdf = async (file: File): Promise<string> => {
         if (fullText.length > MAX_INPUT_LENGTH) break;
     }
 
-    return fullText.slice(0, MAX_INPUT_LENGTH);
-            .map((item) => ('str' in item ? (item as { str: string }).str : ''))
-            .join(' ');
-        fullText += pageText + '\n\n';
-
-        if (fullText.length > MAX_INPUT_LENGTH) {
-            fullText = fullText.slice(0, MAX_INPUT_LENGTH);
-            break;
-        }
-    }
-
-    return fullText.slice(0, MAX_INPUT_LENGTH);
     return sanitizeInput(fullText);
 };
 
@@ -85,8 +72,7 @@ export const parseEpub = async (file: File): Promise<string> => {
     // Let's iterate spine items.
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const spineItems = (spine as any).items || [];
-    const spineItems = spine.items || [];
+    const spineItems = (spine as any).items || spine.items || [];
 
     for (const item of spineItems) {
         if (fullText.length >= MAX_INPUT_LENGTH) break;
@@ -106,7 +92,6 @@ export const parseEpub = async (file: File): Promise<string> => {
             // We can just iterate the spine and get content.
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const doc = await book.load(item.href) as any;
             const doc = await book.load(item.href) as unknown as EpubDocument;
             // doc is a DOM Document / XML Document
             if (doc && doc.body) {
@@ -115,18 +100,12 @@ export const parseEpub = async (file: File): Promise<string> => {
                 fullText += (doc.textContent || '') + '\n\n';
             }
 
-            if (fullText.length > MAX_INPUT_LENGTH) {
-                fullText = fullText.slice(0, MAX_INPUT_LENGTH);
-                break;
-            }
-
             if (fullText.length > MAX_INPUT_LENGTH) break;
         } catch (err) {
             console.warn(`Failed to parse chapter ${item.href}:`, err);
         }
     }
 
-    return fullText.slice(0, MAX_INPUT_LENGTH);
     return sanitizeInput(fullText);
 };
 
@@ -144,7 +123,6 @@ export const parseFile = async (file: File): Promise<string> => {
 
     // Default: Text
     const text = await file.text();
-    return text.slice(0, MAX_INPUT_LENGTH);
     // sanitizeInput will handle truncation
     return sanitizeInput(text);
 };
