@@ -18,3 +18,7 @@
 **Vulnerability:** The application lacked HTTP security headers (X-Frame-Options, X-Content-Type-Options, etc.) which leaves it vulnerable to clickjacking, MIME sniffing, and other common web attacks.
 **Learning:** Static site deployments (like Vercel) often default to open configurations. Security headers must be explicitly configured in platform-specific config files (vercel.json) or edge middleware.
 **Prevention:** Always verify and configure `vercel.json` or `netlify.toml` with standard security headers as part of the initial project setup.
+## 2025-02-18 - [Corrupted Security Utilities]
+**Vulnerability:** `src/utils/security.ts`, `src/store/useReaderStore.ts`, and `src/utils/fileParser.ts` contained duplicate code blocks and syntax errors due to bad merge conflict resolutions, potentially bypassing security checks and breaking functionality.
+**Learning:** Corrupted files, especially security utilities, can silently disable protections or cause undefined behavior. Syntax errors in critical paths are a security availability risk.
+**Prevention:** Strict pre-commit hooks and automated CI checks must verify build and lint status to prevent merging corrupted files.
