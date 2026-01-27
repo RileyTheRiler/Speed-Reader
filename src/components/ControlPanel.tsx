@@ -47,7 +47,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
         skipBackward,
         skipToNextSentence,
         skipToPrevSentence,
-        toggleSettings
+        toggleSettings,
+        toggleZenMode,
+        toggleSummary,
+        isZenMode,
+        isSummaryOpen,
+        isSettingsOpen
     } = useReaderStore(
         useShallow((state) => ({
             isPlaying: state.isPlaying,
@@ -68,7 +73,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
             skipBackward: state.skipBackward,
             skipToNextSentence: state.skipToNextSentence,
             skipToPrevSentence: state.skipToPrevSentence,
-            toggleSettings: state.toggleSettings
+            toggleSettings: state.toggleSettings,
+            toggleZenMode: state.toggleZenMode,
+            toggleSummary: state.toggleSummary,
+            isZenMode: state.isZenMode,
+            isSummaryOpen: state.isSummaryOpen,
+            isSettingsOpen: state.isSettingsOpen
         }))
     );
 
@@ -414,28 +424,48 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                     <div className="flex items-center justify-end gap-3">
                         <button
                             onClick={toggleSettings}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-700 hover:bg-gray-700/50 text-sm text-gray-400 hover:text-gray-200 transition-colors"
+                            className={clsx(
+                                "flex items-center gap-2 px-4 py-2 rounded-lg border text-sm transition-colors",
+                                isSettingsOpen
+                                    ? "bg-blue-900/20 border-blue-500/50 text-blue-400"
+                                    : "border-gray-700 hover:bg-gray-700/50 text-gray-400 hover:text-gray-200"
+                            )}
                             aria-label="Open settings"
+                            aria-haspopup="dialog"
+                            aria-expanded={isSettingsOpen}
                         >
                             <Settings size={16} />
                             Settings
                         </button>
 
                         <button
-                            onClick={useReaderStore.getState().toggleZenMode}
-                            className="p-2 sm:p-3 rounded-xl bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]"
+                            onClick={toggleZenMode}
+                            className={clsx(
+                                "p-2 sm:p-3 rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]",
+                                isZenMode
+                                    ? "bg-amber-700 text-white shadow-amber-900/20"
+                                    : "bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white"
+                            )}
                             title="Zen Mode"
+                            aria-pressed={isZenMode}
                         >
                             <Maximize size={20} className="sm:w-6 sm:h-6" />
                             <span className="text-[10px] uppercase font-bold tracking-wider">Zen</span>
                         </button>
 
                         <button
-                            onClick={useReaderStore.getState().toggleSummary}
-                            className="p-2 sm:p-3 rounded-xl bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]"
+                            onClick={toggleSummary}
+                            className={clsx(
+                                "p-2 sm:p-3 rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]",
+                                isSummaryOpen
+                                    ? "bg-purple-900/40 text-white shadow-purple-900/20"
+                                    : "bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white"
+                            )}
                             title="AI Summary"
+                            aria-haspopup="dialog"
+                            aria-expanded={isSummaryOpen}
                         >
-                            <Sparkles size={20} className="sm:w-6 sm:h-6 text-purple-400" />
+                            <Sparkles size={20} className={clsx("sm:w-6 sm:h-6", isSummaryOpen ? "text-purple-300" : "text-purple-400")} />
                             <span className="text-[10px] uppercase font-bold tracking-wider">Summary</span>
                         </button>
 
