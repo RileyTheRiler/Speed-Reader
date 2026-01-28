@@ -4,3 +4,6 @@
 ## 2024-05-23 - Zustand Subscription for High-Frequency Updates
 **Learning:** Using `useReaderStore` hook selectors for high-frequency state changes (like `currentIndex` in a speed reader) causes excessive React re-renders, even with `React.memo`. The `useReaderStore()` hook triggers a re-render whenever the selected slice changes.
 **Action:** For state that updates >10 times/second (like playback progress), exclude it from the component's hook selector. Instead, use `useReaderStore.subscribe()` inside a `useEffect` to imperatively update the DOM (via refs) or canvas. Use `useShallow` for the remaining stable selectors to minimize component re-renders.
+## 2026-01-28 - ReadingProgress Optimization
+**Learning:** React components displaying high-frequency text updates (e.g., "Word X of Y") can become performance bottlenecks if they re-render on every update. Imperative DOM updates via `useReaderStore.subscribe` and `ref.innerText` eliminate this overhead without sacrificing functionality.
+**Action:** Always prefer imperative DOM updates for high-frequency text changes (progress counters, timers) to keep the React render loop idle during playback.
