@@ -96,7 +96,7 @@ export const useReaderStore = create<ReaderState>()(
             wpm: 300,
             isSidePanelOpen: false,
             isSettingsOpen: false,
-            isSummaryOpen: false, // Added
+            isSummaryOpen: false,
             showInput: true,
             isZenMode: false,
 
@@ -127,9 +127,6 @@ export const useReaderStore = create<ReaderState>()(
                 const cleanText = sanitizeInput(text);
                 const tokens = tokenize(cleanText, settings.chunkSize, settings.smartChunking);
                 set({ inputText: cleanText, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
-                const sanitizedText = sanitizeInput(text);
-                const tokens = tokenize(sanitizedText, settings.chunkSize, settings.smartChunking);
-                set({ inputText: sanitizedText, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
             },
 
             setTokens: (tokens) => set({ tokens }),
