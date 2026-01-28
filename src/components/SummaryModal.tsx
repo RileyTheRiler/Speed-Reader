@@ -34,8 +34,9 @@ export const SummaryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = 
         try {
             const result = await generateSummary(inputText, apiKey);
             setSummary(result);
-        } catch (err: any) {
-            setError(err.message || "Failed to generate summary");
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to generate summary";
+            setError(errorMessage);
         } finally {
             setIsGeneratingSummary(false);
         }
@@ -51,17 +52,23 @@ export const SummaryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = 
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div className="bg-[#1a1a1a] w-full max-w-lg rounded-xl border border-gray-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="summary-title"
+                className="bg-[#1a1a1a] w-full max-w-lg rounded-xl border border-gray-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-800 bg-[#222]">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <h2 id="summary-title" className="text-xl font-bold text-white flex items-center gap-2">
                         <Sparkles className="text-purple-500" />
                         Auto-Summary
                     </h2>
                     <button
                         onClick={onClose}
                         className="p-2 hover:bg-gray-700 rounded-lg text-gray-400 hover:text-white transition-colors"
+                        aria-label="Close summary"
                     >
                         <X size={20} />
                     </button>

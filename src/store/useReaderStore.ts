@@ -124,9 +124,6 @@ export const useReaderStore = create<ReaderState>()(
 
             setInputText: (text) => {
                 const { settings } = get();
-                const cleanText = sanitizeInput(text);
-                const tokens = tokenize(cleanText, settings.chunkSize, settings.smartChunking);
-                set({ inputText: cleanText, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
                 const sanitizedText = sanitizeInput(text);
                 const tokens = tokenize(sanitizedText, settings.chunkSize, settings.smartChunking);
                 set({ inputText: sanitizedText, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
