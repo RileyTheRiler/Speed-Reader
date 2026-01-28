@@ -16,11 +16,16 @@ export const SettingsModal: React.FC = () => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <div className="bg-[#1a1a1a] w-full max-w-2xl rounded-xl border border-gray-800 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="settings-title"
+                className="bg-[#1a1a1a] w-full max-w-2xl rounded-xl border border-gray-800 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+            >
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-800 bg-[#222]">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <h2 id="settings-title" className="text-xl font-bold text-white flex items-center gap-2">
                         <BookOpen className="text-blue-500" />
                         Reader Settings
                     </h2>
