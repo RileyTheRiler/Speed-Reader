@@ -1,34 +1,20 @@
 import React, { useEffect, useRef, memo } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
+import { useShallow } from 'zustand/react/shallow';
 import type { Token } from '../utils/tokenizer';
 import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface TokenSpanProps {
     token: Token;
     index: number;
-    isActive: boolean;
     onTokenClick: (index: number) => void;
 }
 
-const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }) => {
-    const ref = useRef<HTMLSpanElement>(null);
-
-    useEffect(() => {
-        if (isActive && ref.current) {
-            ref.current.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center',
-            });
-        }
-    }, [isActive]);
-
+const TokenSpan = memo<TokenSpanProps>(({ token, index, onTokenClick }) => {
     return (
         <span
-            ref={ref}
-            className={`
-                transition-colors duration-100 px-1 rounded cursor-pointer
-                ${isActive ? 'bg-blue-600 text-white font-bold scale-105' : 'hover:bg-[#383838]'}
-            `}
+            data-index={index}
+            className="transition-colors duration-100 px-1 rounded cursor-pointer hover:bg-[#383838]"
             onClick={() => onTokenClick(index)}
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -38,7 +24,6 @@ const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }
             }}
             role="button"
             tabIndex={0}
-            aria-current={isActive ? 'true' : undefined}
             aria-label={`Word ${index + 1}: ${token.text}`}
         >
             {token.text}{token.hasSpaceAfter ? ' ' : ''}
@@ -55,7 +40,6 @@ interface TextPanelProps {
 export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) => {
     const {
         tokens,
-        currentIndex,
         isSidePanelOpen,
         toggleSidePanel,
         setCurrentIndex,
@@ -65,9 +49,21 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
         getCurrentSentence,
         skipToNextSentence,
         skipToPrevSentence
-    } = useReaderStore();
+    } = useReaderStore(useShallow(state => ({
+        tokens: state.tokens,
+        isSidePanelOpen: state.isSidePanelOpen,
+        toggleSidePanel: state.toggleSidePanel,
+        setCurrentIndex: state.setCurrentIndex,
+        play: state.play,
+        settings: state.settings,
+        isPlaying: state.isPlaying,
+        getCurrentSentence: state.getCurrentSentence,
+        skipToNextSentence: state.skipToNextSentence,
+        skipToPrevSentence: state.skipToPrevSentence
+    })));
 
     const containerRef = useRef<HTMLDivElement>(null);
+    const lastActiveIndex = useRef<number>(-1);
 
     const {
         fontFamily,
@@ -81,18 +77,51 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
         play();
     };
 
-    // Auto-scroll for Pacer Mode
+    // Imperative updates for performance
     useEffect(() => {
-        if (readingMode === 'pacer' && containerRef.current && tokens[currentIndex]) {
-            const currentCaret = containerRef.current.querySelector('[aria-current="true"]');
-            if (currentCaret) {
-                currentCaret.scrollIntoView({
+        const updateActiveToken = (index: number) => {
+            if (!containerRef.current) return;
+
+            // Deactivate old
+            if (lastActiveIndex.current !== -1 && lastActiveIndex.current !== index) {
+                const oldToken = containerRef.current.querySelector(`[data-index="${lastActiveIndex.current}"]`);
+                if (oldToken) {
+                    oldToken.className = "transition-colors duration-100 px-1 rounded cursor-pointer hover:bg-[#383838]";
+                    oldToken.removeAttribute('aria-current');
+                }
+            }
+
+            // Activate new
+            const newToken = containerRef.current.querySelector(`[data-index="${index}"]`);
+            if (newToken) {
+                newToken.className = "transition-colors duration-100 px-1 rounded cursor-pointer bg-blue-600 text-white font-bold scale-105";
+                newToken.setAttribute('aria-current', 'true');
+
+                newToken.scrollIntoView({
                     behavior: 'smooth',
                     block: 'center',
                 });
             }
-        }
-    }, [currentIndex, readingMode, tokens]);
+            lastActiveIndex.current = index;
+        };
+
+        // Initial sync
+        const initialIndex = useReaderStore.getState().currentIndex;
+        updateActiveToken(initialIndex);
+
+        // Subscribe to changes
+        const unsubscribe = useReaderStore.subscribe(
+            (state, prevState) => {
+                if (state.currentIndex !== prevState.currentIndex) {
+                     updateActiveToken(state.currentIndex);
+                }
+            }
+        );
+
+        return () => {
+            unsubscribe();
+        };
+    }, [tokens]); // Re-subscribe if tokens change (DOM re-rendered)
 
     if (variant === 'side-panel' && !isSidePanelOpen) return null;
 
@@ -106,7 +135,8 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
 
     // --- PAUSE OVERLAY (For RSVP Modes) ---
     // Only show if paused, not in pacer mode, and we have text
-    const showPauseOverlay = !isPlaying && readingMode !== 'pacer' && tokens.length > 0;
+    // AND we are in the embedded view (side panel should always show text)
+    const showPauseOverlay = !isPlaying && readingMode !== 'pacer' && tokens.length > 0 && variant === 'embedded';
 
     if (showPauseOverlay) {
         const sentence = getCurrentSentence();
@@ -203,7 +233,6 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
                             key={token.id}
                             token={token}
                             index={index}
-                            isActive={index === currentIndex}
                             onTokenClick={handleTokenClick}
                         />
                     ))}
