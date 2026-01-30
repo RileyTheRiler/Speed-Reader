@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Key, Loader2, Copy, Check } from 'lucide-react';
+import { X, Sparkles, Key, Loader2, Copy, Check, RotateCcw } from 'lucide-react';
 import { useReaderStore } from '../store/useReaderStore';
 import { generateSummary } from '../utils/llmService';
 
@@ -183,5 +183,3 @@ export const SummaryModal: React.FC<{ isOpen: boolean; onClose: () => void }> = 
         </div>
     );
 };
-
-import { RotateCcw } from 'lucide-react';
