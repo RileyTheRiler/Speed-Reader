@@ -2,32 +2,27 @@ import React, { useEffect, useRef, memo } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
 import type { Token } from '../utils/tokenizer';
 import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
+
+// Imperative styling constants
+const ACTIVE_CLASSES = ['bg-blue-600', 'text-white', 'font-bold', 'scale-105'];
+const INACTIVE_CLASSES = ['hover:bg-[#383838]'];
 
 interface TokenSpanProps {
     token: Token;
     index: number;
-    isActive: boolean;
     onTokenClick: (index: number) => void;
 }
 
-const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }) => {
-    const ref = useRef<HTMLSpanElement>(null);
-
-    useEffect(() => {
-        if (isActive && ref.current) {
-            ref.current.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center',
-            });
-        }
-    }, [isActive]);
-
+const TokenSpan = memo<TokenSpanProps>(({ token, index, onTokenClick }) => {
+    // Note: This component is now static and only re-renders if token content changes.
+    // Highlighting is handled imperatively by the parent TextPanel.
     return (
         <span
-            ref={ref}
+            data-index={index}
             className={`
                 transition-colors duration-100 px-1 rounded cursor-pointer
-                ${isActive ? 'bg-blue-600 text-white font-bold scale-105' : 'hover:bg-[#383838]'}
+                ${INACTIVE_CLASSES.join(' ')}
             `}
             onClick={() => onTokenClick(index)}
             onKeyDown={(e) => {
@@ -38,7 +33,6 @@ const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }
             }}
             role="button"
             tabIndex={0}
-            aria-current={isActive ? 'true' : undefined}
             aria-label={`Word ${index + 1}: ${token.text}`}
         >
             {token.text}{token.hasSpaceAfter ? ' ' : ''}
@@ -53,9 +47,9 @@ interface TextPanelProps {
 }
 
 export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) => {
+    // Select stable state using useShallow
     const {
         tokens,
-        currentIndex,
         isSidePanelOpen,
         toggleSidePanel,
         setCurrentIndex,
@@ -65,9 +59,24 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
         getCurrentSentence,
         skipToNextSentence,
         skipToPrevSentence
-    } = useReaderStore();
+    } = useReaderStore(
+        useShallow((state) => ({
+            tokens: state.tokens,
+            // Exclude currentIndex to prevent re-renders on every tick
+            isSidePanelOpen: state.isSidePanelOpen,
+            toggleSidePanel: state.toggleSidePanel,
+            setCurrentIndex: state.setCurrentIndex,
+            play: state.play,
+            settings: state.settings,
+            isPlaying: state.isPlaying,
+            getCurrentSentence: state.getCurrentSentence,
+            skipToNextSentence: state.skipToNextSentence,
+            skipToPrevSentence: state.skipToPrevSentence
+        }))
+    );
 
     const containerRef = useRef<HTMLDivElement>(null);
+    const prevIndexRef = useRef<number>(-1);
 
     const {
         fontFamily,
@@ -81,18 +90,52 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
         play();
     };
 
-    // Auto-scroll for Pacer Mode
+    // Imperative Update Logic for Highlighting
     useEffect(() => {
-        if (readingMode === 'pacer' && containerRef.current && tokens[currentIndex]) {
-            const currentCaret = containerRef.current.querySelector('[aria-current="true"]');
-            if (currentCaret) {
-                currentCaret.scrollIntoView({
+        const container = containerRef.current;
+        if (!container) return;
+
+        const updateHighlight = (index: number) => {
+            // Find currently active elements (cleanup safety)
+            const activeEls = container.querySelectorAll('[aria-current="true"]');
+            activeEls.forEach(el => {
+                // Check if it matches current index to avoid flicker (optional optimization)
+                if (el.getAttribute('data-index') !== String(index)) {
+                    el.classList.remove(...ACTIVE_CLASSES);
+                    el.classList.add(...INACTIVE_CLASSES);
+                    el.removeAttribute('aria-current');
+                }
+            });
+
+            // Add active styles to new index
+            const curEl = container.querySelector(`[data-index="${index}"]`);
+            if (curEl) {
+                curEl.classList.remove(...INACTIVE_CLASSES);
+                curEl.classList.add(...ACTIVE_CLASSES);
+                curEl.setAttribute('aria-current', 'true');
+
+                // Scroll into view
+                curEl.scrollIntoView({
                     behavior: 'smooth',
                     block: 'center',
                 });
             }
-        }
-    }, [currentIndex, readingMode, tokens]);
+            prevIndexRef.current = index;
+        };
+
+        // Initial Sync
+        const initialIndex = useReaderStore.getState().currentIndex;
+        updateHighlight(initialIndex);
+
+        // Subscribe to store updates
+        const unsubscribe = useReaderStore.subscribe((state, prevState) => {
+            if (state.currentIndex !== prevState.currentIndex) {
+                updateHighlight(state.currentIndex);
+            }
+        });
+
+        return unsubscribe;
+    }, [tokens, isSidePanelOpen]); // Re-subscribe and re-sync when tokens (and thus the DOM list) change
 
     if (variant === 'side-panel' && !isSidePanelOpen) return null;
 
@@ -106,7 +149,8 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
 
     // --- PAUSE OVERLAY (For RSVP Modes) ---
     // Only show if paused, not in pacer mode, and we have text
-    const showPauseOverlay = !isPlaying && readingMode !== 'pacer' && tokens.length > 0;
+    // RESTRICTION: Only show in embedded mode. Side panel should always show text list.
+    const showPauseOverlay = variant === 'embedded' && !isPlaying && readingMode !== 'pacer' && tokens.length > 0;
 
     if (showPauseOverlay) {
         const sentence = getCurrentSentence();
@@ -186,7 +230,7 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
                         aria-label="Close text panel"
                     >
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
+                            <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z" />
                         </svg>
                     </button>
                 </div>
@@ -203,7 +247,6 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
                             key={token.id}
                             token={token}
                             index={index}
-                            isActive={index === currentIndex}
                             onTokenClick={handleTokenClick}
                         />
                     ))}
