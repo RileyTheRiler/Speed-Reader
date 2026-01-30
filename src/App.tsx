@@ -34,6 +34,7 @@ function App() {
     toggleZenMode,
     setCurrentIndex,
     readingMode,
+    isSummaryOpen,
   } = useReaderStore(
       useShallow((state) => ({
           tokensLength: state.tokens.length,
@@ -47,6 +48,7 @@ function App() {
           toggleZenMode: state.toggleZenMode,
           setCurrentIndex: state.setCurrentIndex,
           readingMode: state.settings.readingMode,
+          isSummaryOpen: state.isSummaryOpen,
       }))
   );
 
