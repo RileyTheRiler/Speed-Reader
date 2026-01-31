@@ -34,6 +34,8 @@ function App() {
     toggleZenMode,
     setCurrentIndex,
     readingMode,
+    isSummaryOpen,
+    toggleSummary,
   } = useReaderStore(
       useShallow((state) => ({
           tokensLength: state.tokens.length,
@@ -47,6 +49,8 @@ function App() {
           toggleZenMode: state.toggleZenMode,
           setCurrentIndex: state.setCurrentIndex,
           readingMode: state.settings.readingMode,
+          isSummaryOpen: state.isSummaryOpen,
+          toggleSummary: state.toggleSummary,
       }))
   );
 
@@ -262,8 +266,8 @@ function App() {
         {/* Modals */}
         <SettingsModal />
         <SummaryModal
-          isOpen={useReaderStore.getState().isSummaryOpen}
-          onClose={useReaderStore.getState().toggleSummary}
+          isOpen={isSummaryOpen}
+          onClose={toggleSummary}
         />
         <KeyboardShortcutsModal
           isOpen={isShortcutsOpen}
