@@ -1,6 +1,5 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import ePub from 'epubjs';
-import { MAX_INPUT_LENGTH } from './security';
 import { MAX_INPUT_LENGTH, sanitizeInput } from './security';
 
 // Types for EPUB.js
@@ -38,31 +37,20 @@ export const parsePdf = async (file: File): Promise<string> => {
     const numPages = pdf.numPages;
 
     for (let i = 1; i <= numPages; i++) {
+        // Early break if we already exceeded max length
         if (fullText.length >= MAX_INPUT_LENGTH) break;
 
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
+
+        // Safer extraction without explicit any
         const pageText = textContent.items
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .map((item: any) => item.str)
-            .join(' ');
-        fullText += pageText + '\n\n';
-
-        if (fullText.length > MAX_INPUT_LENGTH) break;
-    }
-
-    return fullText.slice(0, MAX_INPUT_LENGTH);
             .map((item) => ('str' in item ? (item as { str: string }).str : ''))
             .join(' ');
-        fullText += pageText + '\n\n';
 
-        if (fullText.length > MAX_INPUT_LENGTH) {
-            fullText = fullText.slice(0, MAX_INPUT_LENGTH);
-            break;
-        }
+        fullText += pageText + '\n\n';
     }
 
-    return fullText.slice(0, MAX_INPUT_LENGTH);
     return sanitizeInput(fullText);
 };
 
@@ -71,62 +59,30 @@ export const parseEpub = async (file: File): Promise<string> => {
     const arrayBuffer = await file.arrayBuffer();
     const book = ePub(arrayBuffer);
 
-    // Iterate through key sections (spine) and extract text
     let fullText = '';
 
     await book.ready;
     const spine = book.spine as unknown as Spine;
 
-    // The type definition for spine might be loose, but .each() iterates sections
-    // Note: older epubjs versions used .each(), newer might use for-loop on spine.items
-    // Let's safe-guard this.
-
-    // We can just load the entire book text? No, that's heavy.
-    // Let's iterate spine items.
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const spineItems = (spine as any).items || [];
     const spineItems = spine.items || [];
 
     for (const item of spineItems) {
         if (fullText.length >= MAX_INPUT_LENGTH) break;
 
-        // Load the chapter
-        // item can be loaded
-        // Be careful: 'book.load' might load the whole thing into DOM.
-        // We want the text content.
-        // 'item.load(book.load.bind(book))' returns a document?
-
         try {
-            // Using the raw section load method if available, or just book.load(item.href)
-            // But we have the ArrayBuffer book here.
-            // Let's stick to the official API: book.load(item.href) returns a Promise<Document>
-
-            // Wait, we passed ArrayBuffer to ePub(), so it's "opened".
-            // We can just iterate the spine and get content.
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const doc = await book.load(item.href) as any;
             const doc = await book.load(item.href) as unknown as EpubDocument;
+
             // doc is a DOM Document / XML Document
             if (doc && doc.body) {
                 fullText += (doc.body.textContent || '') + '\n\n';
             } else if (doc && doc.textContent) {
                 fullText += (doc.textContent || '') + '\n\n';
             }
-
-            if (fullText.length > MAX_INPUT_LENGTH) {
-                fullText = fullText.slice(0, MAX_INPUT_LENGTH);
-                break;
-            }
-
-            if (fullText.length > MAX_INPUT_LENGTH) break;
         } catch (err) {
             console.warn(`Failed to parse chapter ${item.href}:`, err);
         }
     }
 
-    return fullText.slice(0, MAX_INPUT_LENGTH);
     return sanitizeInput(fullText);
 };
 
@@ -144,7 +100,6 @@ export const parseFile = async (file: File): Promise<string> => {
 
     // Default: Text
     const text = await file.text();
-    return text.slice(0, MAX_INPUT_LENGTH);
     // sanitizeInput will handle truncation
     return sanitizeInput(text);
 };
