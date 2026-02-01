@@ -45,32 +45,38 @@ export const SettingsModal: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Mode Selection */}
                             <div className="col-span-full bg-gray-800/50 p-4 rounded-lg space-y-3">
-                                <label className="text-sm text-gray-300 font-medium">Reading Mode</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        onClick={() => updateSettings({ readingMode: 'rsvp' })}
-                                        className={clsx(
-                                            "flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-transparent transition-all",
-                                            settings.readingMode === 'rsvp'
-                                                ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
-                                                : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-                                        )}
-                                    >
-                                        <Eye size={18} />
-                                        RSVP (Speed)
-                                    </button>
-                                    <button
-                                        onClick={() => updateSettings({ readingMode: 'pacer' })}
-                                        className={clsx(
-                                            "flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-transparent transition-all",
-                                            settings.readingMode === 'pacer'
-                                                ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
-                                                : "bg-gray-700 text-gray-400 hover:bg-gray-600"
-                                        )}
-                                    >
-                                        <BookOpen size={18} />
-                                        Highlighter (Pacer)
-                                    </button>
+                                <div role="radiogroup" aria-labelledby="reading-mode-label" className="space-y-3">
+                                    <label id="reading-mode-label" className="text-sm text-gray-300 font-medium block">Reading Mode</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            role="radio"
+                                            aria-checked={settings.readingMode === 'rsvp'}
+                                            onClick={() => updateSettings({ readingMode: 'rsvp' })}
+                                            className={clsx(
+                                                "flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-transparent transition-all",
+                                                settings.readingMode === 'rsvp'
+                                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
+                                                    : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                                            )}
+                                        >
+                                            <Eye size={18} />
+                                            RSVP (Speed)
+                                        </button>
+                                        <button
+                                            role="radio"
+                                            aria-checked={settings.readingMode === 'pacer'}
+                                            onClick={() => updateSettings({ readingMode: 'pacer' })}
+                                            className={clsx(
+                                                "flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-transparent transition-all",
+                                                settings.readingMode === 'pacer'
+                                                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
+                                                    : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                                            )}
+                                        >
+                                            <BookOpen size={18} />
+                                            Highlighter (Pacer)
+                                        </button>
+                                    </div>
                                 </div>
                                 <p className="text-xs text-gray-500">
                                     {settings.readingMode === 'rsvp'
@@ -104,7 +110,7 @@ export const SettingsModal: React.FC = () => {
                         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                             <Layers size={16} /> Color Theme
                         </h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div role="radiogroup" aria-label="Color Theme" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             {[
                                 { name: 'Midnight', bg: '#1a1a1a', text: '#e5e5e5', highlight: '#ff4444' },
                                 { name: 'Paper', bg: '#f5f5f5', text: '#333333', highlight: '#d32f2f' },
@@ -113,6 +119,8 @@ export const SettingsModal: React.FC = () => {
                             ].map((theme) => (
                                 <button
                                     key={theme.name}
+                                    role="radio"
+                                    aria-checked={settings.backgroundColor === theme.bg}
                                     onClick={() => updateSettings({
                                         backgroundColor: theme.bg,
                                         textColor: theme.text,
@@ -120,7 +128,6 @@ export const SettingsModal: React.FC = () => {
                                     })}
                                     className="p-2 rounded-lg border border-[#555] hover:border-[#777] transition-all bg-[#444] flex flex-col items-center gap-1 group"
                                     aria-label={`Select ${theme.name} theme`}
-                                    aria-pressed={settings.backgroundColor === theme.bg}
                                 >
                                     <div
                                         className="w-full h-8 rounded border border-white/10 relative overflow-hidden"
