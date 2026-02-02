@@ -101,38 +101,56 @@ export const SettingsModal: React.FC = () => {
 
                     {/* Section: Color Themes */}
                     <section className="space-y-4 pt-6 border-t border-gray-800">
-                        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        <h3 id="theme-heading" className="text-sm font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
                             <Layers size={16} /> Color Theme
                         </h3>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div
+                            role="radiogroup"
+                            aria-labelledby="theme-heading"
+                            className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+                        >
                             {[
                                 { name: 'Midnight', bg: '#1a1a1a', text: '#e5e5e5', highlight: '#ff4444' },
                                 { name: 'Paper', bg: '#f5f5f5', text: '#333333', highlight: '#d32f2f' },
                                 { name: 'Solar', bg: '#002b36', text: '#839496', highlight: '#b58900' },
                                 { name: 'Hi-Contrast', bg: '#000000', text: '#ffff00', highlight: '#ff00ff' },
-                            ].map((theme) => (
-                                <button
-                                    key={theme.name}
-                                    onClick={() => updateSettings({
-                                        backgroundColor: theme.bg,
-                                        textColor: theme.text,
-                                        highlightColor: theme.highlight
-                                    })}
-                                    className="p-2 rounded-lg border border-[#555] hover:border-[#777] transition-all bg-[#444] flex flex-col items-center gap-1 group"
-                                    aria-label={`Select ${theme.name} theme`}
-                                    aria-pressed={settings.backgroundColor === theme.bg}
-                                >
-                                    <div
-                                        className="w-full h-8 rounded border border-white/10 relative overflow-hidden"
-                                        style={{ backgroundColor: theme.bg }}
+                            ].map((theme) => {
+                                const isSelected = settings.backgroundColor === theme.bg;
+                                return (
+                                    <button
+                                        key={theme.name}
+                                        role="radio"
+                                        aria-checked={isSelected}
+                                        onClick={() => updateSettings({
+                                            backgroundColor: theme.bg,
+                                            textColor: theme.text,
+                                            highlightColor: theme.highlight
+                                        })}
+                                        className={clsx(
+                                            "p-2 rounded-lg border transition-all bg-[#444] flex flex-col items-center gap-1 group outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+                                            isSelected
+                                                ? "border-blue-500 ring-2 ring-blue-500/20"
+                                                : "border-[#555] hover:border-[#777]"
+                                        )}
+                                        aria-label={theme.name}
                                     >
-                                        <div className="absolute inset-0 flex items-center justify-center font-bold text-xs" style={{ color: theme.text }}>
-                                            Abc
+                                        <div
+                                            className="w-full h-8 rounded border border-white/10 relative overflow-hidden"
+                                            style={{ backgroundColor: theme.bg }}
+                                        >
+                                            <div className="absolute inset-0 flex items-center justify-center font-bold text-xs" style={{ color: theme.text }}>
+                                                Abc
+                                            </div>
                                         </div>
-                                    </div>
-                                    <span className="text-xs text-gray-300 group-hover:text-white">{theme.name}</span>
-                                </button>
-                            ))}
+                                        <span className={clsx(
+                                            "text-xs group-hover:text-white transition-colors",
+                                            isSelected ? "text-white font-medium" : "text-gray-300"
+                                        )}>
+                                            {theme.name}
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </section>
 
