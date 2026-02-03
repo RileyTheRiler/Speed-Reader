@@ -18,7 +18,8 @@ import {
   BarChart3,
   Sliders,
   HelpCircle,
-  Keyboard
+  Keyboard,
+  Trash2
 } from 'lucide-react';
 
 function App() {
@@ -226,17 +227,36 @@ function App() {
                     </button>
                   </div>
                   <FileImport />
-                  <textarea
-                    id="input-text"
-                    className="w-full h-[200px] p-4 bg-[#444] border border-[#555] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y font-mono"
-                    placeholder="Paste your text here to begin speed reading..."
-                    value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
-                    aria-describedby="input-help"
-                  />
-                  <p id="input-help" className="text-xs text-gray-500 mt-1">
-                    Paste any text to start speed reading with optimal recognition point alignment.
-                  </p>
+                  <div className="relative">
+                    <textarea
+                      id="input-text"
+                      className="w-full h-[200px] p-4 bg-[#444] border border-[#555] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y font-mono"
+                      placeholder="Paste your text here to begin speed reading..."
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      aria-describedby="input-help"
+                    />
+                    {inputText.length > 0 && (
+                      <button
+                        onClick={() => setInputText('')}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-gray-800/80 text-gray-400 hover:text-red-400 hover:bg-gray-700 transition-colors backdrop-blur-sm"
+                        aria-label="Clear input"
+                        title="Clear text"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <p id="input-help" className="text-xs text-gray-500">
+                      Paste any text to start speed reading with optimal recognition point alignment.
+                    </p>
+                    {inputText.length > 0 && (
+                      <span className="text-xs text-gray-500 font-medium">
+                        {tokensLength} {tokensLength === 1 ? 'word' : 'words'}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <button
