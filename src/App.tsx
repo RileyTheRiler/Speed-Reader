@@ -197,6 +197,7 @@ function App() {
                     onClick={toggleSidePanel}
                     className="text-sm text-blue-400 hover:text-blue-300 underline"
                     aria-label={isSidePanelOpen ? 'Hide text panel' : 'Show text panel'}
+                    data-testid="toggle-side-panel"
                   >
                     {isSidePanelOpen ? 'Hide Side Panel' : 'Show Side Panel'}
                   </button>

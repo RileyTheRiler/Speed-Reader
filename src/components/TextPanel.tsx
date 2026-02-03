@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, memo } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
+import { useShallow } from 'zustand/react/shallow';
 import type { Token } from '../utils/tokenizer';
 import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -10,9 +11,13 @@ interface TokenSpanProps {
     onTokenClick: (index: number) => void;
 }
 
+const INACTIVE_CLASS = "transition-colors duration-100 px-1 rounded cursor-pointer hover:bg-[#383838]";
+const ACTIVE_CLASS = "transition-colors duration-100 px-1 rounded cursor-pointer bg-blue-600 text-white font-bold scale-105";
+
 const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }) => {
     const ref = useRef<HTMLSpanElement>(null);
 
+    // Initial scroll handling still useful for non-playback jumps
     useEffect(() => {
         if (isActive && ref.current) {
             ref.current.scrollIntoView({
@@ -25,10 +30,7 @@ const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }
     return (
         <span
             ref={ref}
-            className={`
-                transition-colors duration-100 px-1 rounded cursor-pointer
-                ${isActive ? 'bg-blue-600 text-white font-bold scale-105' : 'hover:bg-[#383838]'}
-            `}
+            className={isActive ? ACTIVE_CLASS : INACTIVE_CLASS}
             onClick={() => onTokenClick(index)}
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -40,6 +42,7 @@ const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }
             tabIndex={0}
             aria-current={isActive ? 'true' : undefined}
             aria-label={`Word ${index + 1}: ${token.text}`}
+            data-index={index}
         >
             {token.text}{token.hasSpaceAfter ? ' ' : ''}
         </span>
@@ -53,6 +56,7 @@ interface TextPanelProps {
 }
 
 export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) => {
+    // Optimized: Exclude currentIndex when playing to prevent re-renders
     const {
         tokens,
         currentIndex,
@@ -65,9 +69,26 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
         getCurrentSentence,
         skipToNextSentence,
         skipToPrevSentence
-    } = useReaderStore();
+    } = useReaderStore(
+        useShallow((state) => ({
+            tokens: state.tokens,
+            // When playing, hide currentIndex from React to prevent re-renders on every tick
+            currentIndex: state.isPlaying ? null : state.currentIndex,
+            isSidePanelOpen: state.isSidePanelOpen,
+            toggleSidePanel: state.toggleSidePanel,
+            setCurrentIndex: state.setCurrentIndex,
+            play: state.play,
+            settings: state.settings,
+            isPlaying: state.isPlaying,
+            getCurrentSentence: state.getCurrentSentence,
+            skipToNextSentence: state.skipToNextSentence,
+            skipToPrevSentence: state.skipToPrevSentence
+        }))
+    );
 
     const containerRef = useRef<HTMLDivElement>(null);
+    // Keep track of the last imperatively active index to clean up efficiently
+    const activeIndexRef = useRef<number | null>(null);
 
     const {
         fontFamily,
@@ -81,18 +102,74 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
         play();
     };
 
-    // Auto-scroll for Pacer Mode
-    useEffect(() => {
-        if (readingMode === 'pacer' && containerRef.current && tokens[currentIndex]) {
-            const currentCaret = containerRef.current.querySelector('[aria-current="true"]');
-            if (currentCaret) {
-                currentCaret.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                });
+    // Imperative DOM Update Logic
+    const updateActiveWord = (index: number) => {
+        if (!containerRef.current) return;
+
+        // 1. Remove active state from previous
+        if (activeIndexRef.current !== null && activeIndexRef.current !== index) {
+            const prev = containerRef.current.querySelector(`[data-index="${activeIndexRef.current}"]`);
+            if (prev) {
+                prev.removeAttribute('aria-current');
+                prev.className = INACTIVE_CLASS;
             }
+        } else {
+             // Fallback cleanup if ref desyncs
+             const prev = containerRef.current.querySelector('[aria-current="true"]');
+             if (prev && prev.getAttribute('data-index') !== String(index)) {
+                 prev.removeAttribute('aria-current');
+                 prev.className = INACTIVE_CLASS;
+             }
         }
-    }, [currentIndex, readingMode, tokens]);
+
+        // 2. Add active state to new
+        const next = containerRef.current.querySelector(`[data-index="${index}"]`);
+        if (next) {
+             next.setAttribute('aria-current', 'true');
+             next.className = ACTIVE_CLASS;
+             activeIndexRef.current = index;
+
+             // Scroll logic
+             // Throttle scroll? Native smooth scroll is usually fine but can be heavy.
+             // Only scroll if needed?
+             // For now, keep existing behavior: center it.
+             next.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+            });
+        }
+    };
+
+    // Subscription for high-frequency updates
+    useEffect(() => {
+        // Sync initial state if playing
+        const state = useReaderStore.getState();
+        if (state.isPlaying) {
+             updateActiveWord(state.currentIndex);
+        }
+
+        const unsub = useReaderStore.subscribe((state, prevState) => {
+            // Only handle index changes imperatively
+            if (state.currentIndex !== prevState.currentIndex) {
+                // If we are showing the TextPanel (which depends on readingMode/variant)
+                // We should update.
+                // Note: If component is unmounted, this effect cleanup runs, so safe.
+                updateActiveWord(state.currentIndex);
+            }
+        });
+
+        return () => {
+            unsub();
+        };
+    }, []);
+
+    // Restore imperative state after React re-renders (e.g. settings change during play)
+    useLayoutEffect(() => {
+        if (isPlaying) {
+            const current = useReaderStore.getState().currentIndex;
+            updateActiveWord(current);
+        }
+    });
 
     if (variant === 'side-panel' && !isSidePanelOpen) return null;
 
@@ -203,7 +280,7 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
                             key={token.id}
                             token={token}
                             index={index}
-                            isActive={index === currentIndex}
+                            isActive={currentIndex === null ? false : index === currentIndex}
                             onTokenClick={handleTokenClick}
                         />
                     ))}
