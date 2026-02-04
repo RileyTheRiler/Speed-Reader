@@ -1,34 +1,24 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useLayoutEffect, useRef, memo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useReaderStore } from '../store/useReaderStore';
 import type { Token } from '../utils/tokenizer';
 import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
 
+const BASE_CLASSES = "transition-colors duration-100 px-1 rounded cursor-pointer";
+const INACTIVE_CLASSES = `${BASE_CLASSES} hover:bg-[#383838]`;
+const ACTIVE_CLASSES = `${BASE_CLASSES} bg-blue-600 text-white font-bold scale-105`;
+
 interface TokenSpanProps {
     token: Token;
     index: number;
-    isActive: boolean;
     onTokenClick: (index: number) => void;
 }
 
-const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }) => {
-    const ref = useRef<HTMLSpanElement>(null);
-
-    useEffect(() => {
-        if (isActive && ref.current) {
-            ref.current.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center',
-            });
-        }
-    }, [isActive]);
-
+const TokenSpan = memo<TokenSpanProps>(({ token, index, onTokenClick }) => {
     return (
         <span
-            ref={ref}
-            className={`
-                transition-colors duration-100 px-1 rounded cursor-pointer
-                ${isActive ? 'bg-blue-600 text-white font-bold scale-105' : 'hover:bg-[#383838]'}
-            `}
+            data-index={index}
+            className={INACTIVE_CLASSES}
             onClick={() => onTokenClick(index)}
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -38,7 +28,6 @@ const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }
             }}
             role="button"
             tabIndex={0}
-            aria-current={isActive ? 'true' : undefined}
             aria-label={`Word ${index + 1}: ${token.text}`}
         >
             {token.text}{token.hasSpaceAfter ? ' ' : ''}
@@ -53,9 +42,9 @@ interface TextPanelProps {
 }
 
 export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) => {
+    // Optimized: Exclude currentIndex to prevent re-renders on every word change
     const {
         tokens,
-        currentIndex,
         isSidePanelOpen,
         toggleSidePanel,
         setCurrentIndex,
@@ -65,9 +54,24 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
         getCurrentSentence,
         skipToNextSentence,
         skipToPrevSentence
-    } = useReaderStore();
+    } = useReaderStore(
+        useShallow((state) => ({
+            tokens: state.tokens,
+            isSidePanelOpen: state.isSidePanelOpen,
+            toggleSidePanel: state.toggleSidePanel,
+            setCurrentIndex: state.setCurrentIndex,
+            play: state.play,
+            settings: state.settings,
+            isPlaying: state.isPlaying,
+            getCurrentSentence: state.getCurrentSentence,
+            skipToNextSentence: state.skipToNextSentence,
+            skipToPrevSentence: state.skipToPrevSentence,
+        }))
+    );
 
     const containerRef = useRef<HTMLDivElement>(null);
+    // Keep track of the currently highlighted index to avoid unnecessary DOM updates
+    const lastHighlightedIndex = useRef<number>(-1);
 
     const {
         fontFamily,
@@ -81,18 +85,63 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
         play();
     };
 
-    // Auto-scroll for Pacer Mode
-    useEffect(() => {
-        if (readingMode === 'pacer' && containerRef.current && tokens[currentIndex]) {
-            const currentCaret = containerRef.current.querySelector('[aria-current="true"]');
-            if (currentCaret) {
-                currentCaret.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'center',
-                });
+    // Imperative Highlight Logic - Optimized to avoid React re-renders
+    useLayoutEffect(() => {
+        if (!containerRef.current) return;
+
+        const updateHighlight = (index: number) => {
+             // If we are highlighting the same index (and it's not the initial -1), skip
+             if (index === lastHighlightedIndex.current && index !== -1) return;
+
+             // Remove highlight from previous
+             if (lastHighlightedIndex.current !== -1) {
+                 const prevEl = containerRef.current?.querySelector(`span[data-index="${lastHighlightedIndex.current}"]`);
+                 if (prevEl) {
+                     prevEl.className = INACTIVE_CLASSES;
+                     prevEl.removeAttribute('aria-current');
+                 }
+             }
+
+             // Add highlight to new
+             if (index !== -1) {
+                 const newEl = containerRef.current?.querySelector(`span[data-index="${index}"]`);
+                 if (newEl) {
+                     newEl.className = ACTIVE_CLASSES;
+                     newEl.setAttribute('aria-current', 'true');
+
+                     newEl.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                    });
+                 }
+             }
+
+             lastHighlightedIndex.current = index;
+        };
+
+        // Initial Highlight
+        const initialIndex = useReaderStore.getState().currentIndex;
+        // Reset lastHighlightedIndex if tokens changed significantly?
+        // No, updateHighlight handles logic. But if tokens changed, DOM is new, so we must highlight.
+        // If DOM is new, lastHighlightedIndex might be stale but previous element doesn't exist.
+        // Resetting lastHighlightedIndex to -1 ensures we don't try to unhighlight non-existent element
+        // (though querySelector handles that) and forces highlight of new element.
+        lastHighlightedIndex.current = -1;
+        updateHighlight(initialIndex);
+
+        // Subscribe to store updates
+        const unsub = useReaderStore.subscribe((state, prevState) => {
+            if (state.currentIndex !== prevState.currentIndex) {
+                updateHighlight(state.currentIndex);
             }
-        }
-    }, [currentIndex, readingMode, tokens]);
+        });
+
+        return () => {
+            unsub();
+        };
+
+    }, [tokens, isSidePanelOpen, variant, readingMode, isPlaying]); // Re-run if DOM changes
+
 
     if (variant === 'side-panel' && !isSidePanelOpen) return null;
 
@@ -106,7 +155,7 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
 
     // --- PAUSE OVERLAY (For RSVP Modes) ---
     // Only show if paused, not in pacer mode, and we have text
-    const showPauseOverlay = !isPlaying && readingMode !== 'pacer' && tokens.length > 0;
+    const showPauseOverlay = variant === 'embedded' && !isPlaying && readingMode !== 'pacer' && tokens.length > 0;
 
     if (showPauseOverlay) {
         const sentence = getCurrentSentence();
@@ -172,6 +221,7 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
 
     return (
         <div
+            data-testid="text-panel"
             className={`${baseClasses} border-[#444]`}
             style={{ backgroundColor, color: textColor }}
             role="complementary"
@@ -203,7 +253,6 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
                             key={token.id}
                             token={token}
                             index={index}
-                            isActive={index === currentIndex}
                             onTokenClick={handleTokenClick}
                         />
                     ))}
