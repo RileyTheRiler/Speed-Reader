@@ -47,7 +47,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
         skipBackward,
         skipToNextSentence,
         skipToPrevSentence,
-        toggleSettings
+        toggleSettings,
+        isZenMode,
+        toggleZenMode,
+        isSummaryOpen,
+        toggleSummary
     } = useReaderStore(
         useShallow((state) => ({
             isPlaying: state.isPlaying,
@@ -68,7 +72,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
             skipBackward: state.skipBackward,
             skipToNextSentence: state.skipToNextSentence,
             skipToPrevSentence: state.skipToPrevSentence,
-            toggleSettings: state.toggleSettings
+            toggleSettings: state.toggleSettings,
+            isZenMode: state.isZenMode,
+            toggleZenMode: state.toggleZenMode,
+            isSummaryOpen: state.isSummaryOpen,
+            toggleSummary: state.toggleSummary
         }))
     );
 
@@ -269,25 +277,31 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                 <div className="space-y-6">
                     {/* Format Toggle */}
                     <div className="flex items-center justify-between gap-4">
-                        <label className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Format</label>
-                        <div className="flex bg-gray-800 p-1 rounded-lg">
+                        <label id="format-label" className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Format</label>
+                        <div
+                            role="radiogroup"
+                            aria-labelledby="format-label"
+                            className="flex bg-gray-800 p-1 rounded-lg"
+                        >
                             <button
+                                role="radio"
+                                aria-checked={settings.aspectRatio === '16:9'}
                                 onClick={() => updateSettings({ aspectRatio: '16:9' })}
                                 className={clsx(
                                     "px-3 py-1 text-xs font-medium rounded-md transition-colors",
                                     settings.aspectRatio === '16:9' ? "bg-gray-600 text-white" : "text-gray-400 hover:text-gray-300"
                                 )}
-                                aria-pressed={settings.aspectRatio === '16:9'}
                             >
                                 16:9
                             </button>
                             <button
+                                role="radio"
+                                aria-checked={settings.aspectRatio === '9:16'}
                                 onClick={() => updateSettings({ aspectRatio: '9:16' })}
                                 className={clsx(
                                     "px-3 py-1 text-xs font-medium rounded-md transition-colors",
                                     settings.aspectRatio === '9:16' ? "bg-gray-600 text-white" : "text-gray-400 hover:text-gray-300"
                                 )}
-                                aria-pressed={settings.aspectRatio === '9:16'}
                             >
                                 9:16
                             </button>
@@ -422,8 +436,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                         </button>
 
                         <button
-                            onClick={useReaderStore.getState().toggleZenMode}
-                            className="p-2 sm:p-3 rounded-xl bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]"
+                            onClick={toggleZenMode}
+                            aria-pressed={isZenMode}
+                            className={clsx(
+                                "p-2 sm:p-3 rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]",
+                                isZenMode ? "bg-blue-900/50 text-blue-200 ring-2 ring-blue-500/50" : "bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white"
+                            )}
                             title="Zen Mode"
                         >
                             <Maximize size={20} className="sm:w-6 sm:h-6" />
@@ -431,11 +449,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                         </button>
 
                         <button
-                            onClick={useReaderStore.getState().toggleSummary}
-                            className="p-2 sm:p-3 rounded-xl bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]"
+                            onClick={toggleSummary}
+                            aria-haspopup="dialog"
+                            aria-expanded={isSummaryOpen}
+                            className={clsx(
+                                "p-2 sm:p-3 rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]",
+                                isSummaryOpen ? "bg-purple-900/50 text-purple-200 ring-2 ring-purple-500/50" : "bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white"
+                            )}
                             title="AI Summary"
                         >
-                            <Sparkles size={20} className="sm:w-6 sm:h-6 text-purple-400" />
+                            <Sparkles size={20} className={clsx("sm:w-6 sm:h-6", isSummaryOpen ? "text-purple-300" : "text-purple-400")} />
                             <span className="text-[10px] uppercase font-bold tracking-wider">Summary</span>
                         </button>
 
