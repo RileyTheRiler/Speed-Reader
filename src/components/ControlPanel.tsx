@@ -47,7 +47,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
         skipBackward,
         skipToNextSentence,
         skipToPrevSentence,
-        toggleSettings
+        toggleSettings,
+        isZenMode,
+        toggleZenMode,
+        isSummaryOpen,
+        toggleSummary
     } = useReaderStore(
         useShallow((state) => ({
             isPlaying: state.isPlaying,
@@ -68,7 +72,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
             skipBackward: state.skipBackward,
             skipToNextSentence: state.skipToNextSentence,
             skipToPrevSentence: state.skipToPrevSentence,
-            toggleSettings: state.toggleSettings
+            toggleSettings: state.toggleSettings,
+            isZenMode: state.isZenMode,
+            toggleZenMode: state.toggleZenMode,
+            isSummaryOpen: state.isSummaryOpen,
+            toggleSummary: state.toggleSummary
         }))
     );
 
@@ -422,20 +430,35 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                         </button>
 
                         <button
-                            onClick={useReaderStore.getState().toggleZenMode}
-                            className="p-2 sm:p-3 rounded-xl bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]"
+                            onClick={toggleZenMode}
+                            className={clsx(
+                                "p-2 sm:p-3 rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]",
+                                isZenMode
+                                    ? "bg-indigo-900/80 text-indigo-100 ring-1 ring-indigo-500 hover:bg-indigo-800"
+                                    : "bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white"
+                            )}
                             title="Zen Mode"
+                            aria-label={isZenMode ? "Exit Zen Mode" : "Enter Zen Mode"}
+                            aria-pressed={isZenMode}
                         >
                             <Maximize size={20} className="sm:w-6 sm:h-6" />
                             <span className="text-[10px] uppercase font-bold tracking-wider">Zen</span>
                         </button>
 
                         <button
-                            onClick={useReaderStore.getState().toggleSummary}
-                            className="p-2 sm:p-3 rounded-xl bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]"
+                            onClick={toggleSummary}
+                            className={clsx(
+                                "p-2 sm:p-3 rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]",
+                                isSummaryOpen
+                                    ? "bg-purple-900/80 text-purple-100 ring-1 ring-purple-500 hover:bg-purple-800"
+                                    : "bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white"
+                            )}
                             title="AI Summary"
+                            aria-label="AI Summary"
+                            aria-haspopup="dialog"
+                            aria-expanded={isSummaryOpen}
                         >
-                            <Sparkles size={20} className="sm:w-6 sm:h-6 text-purple-400" />
+                            <Sparkles size={20} className={clsx("sm:w-6 sm:h-6", isSummaryOpen ? "text-purple-200" : "text-purple-400")} />
                             <span className="text-[10px] uppercase font-bold tracking-wider">Summary</span>
                         </button>
 

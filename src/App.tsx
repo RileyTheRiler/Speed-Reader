@@ -32,6 +32,7 @@ function App() {
     toggleSidePanel,
     isZenMode,
     toggleZenMode,
+    isSummaryOpen,
     setCurrentIndex,
     readingMode,
   } = useReaderStore(
@@ -45,6 +46,7 @@ function App() {
           toggleSidePanel: state.toggleSidePanel,
           isZenMode: state.isZenMode,
           toggleZenMode: state.toggleZenMode,
+          isSummaryOpen: state.isSummaryOpen,
           setCurrentIndex: state.setCurrentIndex,
           readingMode: state.settings.readingMode,
       }))
@@ -262,7 +264,7 @@ function App() {
         {/* Modals */}
         <SettingsModal />
         <SummaryModal
-          isOpen={useReaderStore.getState().isSummaryOpen}
+          isOpen={isSummaryOpen}
           onClose={useReaderStore.getState().toggleSummary}
         />
         <KeyboardShortcutsModal
