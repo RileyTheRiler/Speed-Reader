@@ -131,26 +131,58 @@ describe('tokenize', () => {
     })
   })
 
-  describe('smart chunking', () => {
-    it('groups words by phrases up to punctuation', () => {
+  describe('smart chunking (grammar-aware)', () => {
+    it('breaks at punctuation boundaries', () => {
       const tokens = tokenize('Hello world, this is a test.', 1, true)
       // Should split at comma and period
       expect(tokens.some(t => t.text.includes(','))).toBe(true)
-      expect(tokens.every(t => t.isChunk)).toBe(true)
+      expect(tokens.some(t => t.text.includes('.'))).toBe(true)
     })
 
-    it('limits chunks to max length', () => {
+    it('caps chunks at 4 words (Cowan limit)', () => {
       const tokens = tokenize('one two three four five six seven eight', 1, true)
-      // Smart chunking limits to ~3 words or 20 chars
       tokens.forEach(t => {
         const wordCount = t.text.split(' ').length
         expect(wordCount).toBeLessThanOrEqual(4)
       })
     })
 
+    it('breaks before clause-starting conjunctions', () => {
+      const tokens = tokenize('The cat sat and the dog ran', 1, true)
+      // "and" should start a new chunk
+      const andToken = tokens.find(t => t.text.startsWith('and'))
+      expect(andToken).toBeDefined()
+    })
+
+    it('breaks before subordinating conjunctions', () => {
+      const tokens = tokenize('I left because it was late', 1, true)
+      const becauseToken = tokens.find(t => t.text.startsWith('because'))
+      expect(becauseToken).toBeDefined()
+    })
+
+    it('keeps short phrases together', () => {
+      const tokens = tokenize('The quick brown fox', 1, true)
+      // 4 words, no conjunctions/punctuation — should be one chunk
+      expect(tokens).toHaveLength(1)
+      expect(tokens[0].text).toBe('The quick brown fox')
+    })
+
     it('identifies sentence ends in smart chunks', () => {
       const tokens = tokenize('Hello world. Goodbye.', 1, true)
       expect(tokens.some(t => t.isSentenceEnd)).toBe(true)
+    })
+
+    it('handles single words correctly', () => {
+      const tokens = tokenize('Hello', 1, true)
+      expect(tokens).toHaveLength(1)
+      expect(tokens[0].text).toBe('Hello')
+      expect(tokens[0].isChunk).toBe(false) // single word
+    })
+
+    it('handles text with multiple conjunctions', () => {
+      const tokens = tokenize('cats and dogs but not fish or birds', 1, true)
+      // Should break before "and", "but", "or"
+      expect(tokens.length).toBeGreaterThanOrEqual(3)
     })
   })
 

@@ -9,6 +9,7 @@ import { FileImport } from './components/FileImport';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { DocumentLibrary } from './components/DocumentLibrary';
 import { CompletionModal } from './components/CompletionModal';
+import { PreviewModal } from './components/PreviewModal';
 import {
   FolderOpen
 } from 'lucide-react';
@@ -47,11 +48,27 @@ function App() {
   );
 
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const handleStart = () => {
     if (!inputText.trim()) return;
-    setShowInput(false);
+    // Show preview for substantial text (>100 words)
+    const wordCount = inputText.trim().split(/\s+/).length;
+    if (wordCount > 100) {
+      setShowPreview(true);
+    } else {
+      setShowInput(false);
+    }
   };
+
+  const handlePreviewStart = useCallback(() => {
+    setShowPreview(false);
+    setShowInput(false);
+  }, [setShowInput]);
+
+  const handlePreviewClose = useCallback(() => {
+    setShowPreview(false);
+  }, []);
 
   const handleBackToInput = useCallback(() => {
     setShowInput(true);
@@ -203,6 +220,13 @@ function App() {
           <CompletionModal
             onClose={handleCompletionClose}
             onRestart={handleRestart}
+          />
+        )}
+        {showPreview && (
+          <PreviewModal
+            text={inputText}
+            onClose={handlePreviewClose}
+            onStartReading={handlePreviewStart}
           />
         )}
       </div>

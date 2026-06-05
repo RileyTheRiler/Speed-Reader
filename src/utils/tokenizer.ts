@@ -59,85 +59,88 @@ export const tokenize = (text: string, chunkSize: number = 1, smartChunking: boo
 
     const tokens: Token[] = [];
 
-    // --- Smart Chunking Mode ---
+    // --- Grammar-Aware Chunking Mode ---
+    // Breaks on clause boundaries and caps at 4 words (Cowan's 4±1 working-memory limit).
+    // Uses clause-boundary punctuation and conjunction/clause-start words as break points
+    // rather than arbitrary N-word groups, which hurt comprehension.
     if (smartChunking) {
         let currentChunk: string[] = [];
-        let currentChunkLength = 0;
 
-        // "Glue" words that shouldn't end a chunk if possible
-        const GLUE_WORDS = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'if', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'is', 'are', 'was', 'were']);
+        // Words that START a new clause — break BEFORE these when chunk is non-empty
+        const CLAUSE_STARTERS = new Set([
+            'and', 'but', 'or', 'nor', 'yet', 'so',           // coordinating conjunctions
+            'because', 'although', 'though', 'unless', 'while', // subordinating conjunctions
+            'when', 'where', 'if', 'since', 'until', 'after',
+            'before', 'that', 'which', 'who', 'whom', 'whose',
+            'however', 'therefore', 'moreover', 'furthermore',  // conjunctive adverbs
+            'nevertheless', 'meanwhile', 'otherwise', 'then',
+        ]);
 
-        // Common phrases to try and keep together (simple heuristic lookahead could be added later)
-        // For now, we rely on "don't break after glue words" and "extend if short"
+        // Maximum chunk size — Cowan's working-memory limit
+        const MAX_CHUNK_WORDS = 4;
+
+        const flushChunk = () => {
+            if (currentChunk.length === 0) return;
+
+            const chunkText = currentChunk.join(' ');
+            const chunkWords = [...currentChunk];
+            const wordInfos = chunkWords.map(processWord);
+            const chunkCleanText = wordInfos.map(w => w.cleanText).join(' ');
+
+            // ORP: Middle of chunk
+            const middleWordIndex = Math.floor(chunkWords.length / 2);
+            let orpPosition = 0;
+            for (let j = 0; j < middleWordIndex; j++) {
+                orpPosition += chunkWords[j].length + 1;
+            }
+            const midInfo = wordInfos[middleWordIndex];
+            orpPosition += calculateORP(midInfo.cleanText) + midInfo.leadingOffset;
+
+            const maxMultiplier = Math.max(...wordInfos.map(w => w.multiplier));
+            const chunkDurationMult = maxMultiplier * (1 + (chunkWords.length - 1) * 0.15);
+
+            const lastWord = chunkWords[chunkWords.length - 1];
+            const hasSentenceEnd = /[.!?]/.test(lastWord.slice(-1));
+
+            tokens.push({
+                id: `smart-${tokens.length}-${chunkWords[0]}`,
+                text: chunkText,
+                cleanText: chunkCleanText,
+                orpIndex: orpPosition,
+                delayMultiplier: chunkDurationMult,
+                isChunk: chunkWords.length > 1,
+                isSentenceEnd: hasSentenceEnd,
+                hasSpaceAfter: true,
+            });
+
+            currentChunk = [];
+        };
 
         for (let i = 0; i < rawWords.length; i++) {
             const word = rawWords[i];
             const cleanWord = word.toLowerCase().replace(/[^a-z]/g, '');
+            const hasPunctuation = /[.!?,;:—]$/.test(word);
+
+            // Break BEFORE clause starters (if current chunk is non-empty)
+            if (currentChunk.length > 0 && CLAUSE_STARTERS.has(cleanWord)) {
+                flushChunk();
+            }
 
             currentChunk.push(word);
-            currentChunkLength += word.length;
 
-            const hasPunctuation = /[.!?,;:]$/.test(word);
-            const isGlue = GLUE_WORDS.has(cleanWord);
-
-            // Heuristics for breaking a chunk:
-            // 1. Hard break: Punctuation (always break)
-            // 2. Soft break: 
-            //    - At least 3 words OR > 20 chars
-            //    - AND not a glue word (unless chunk is getting too long > 4 words)
-            //    - AND next word indicates a new Start? (Capitalized? - maybe too aggressive)
-
-            let shouldBreak = false;
-
+            // Break AFTER punctuation (clause boundary)
             if (hasPunctuation) {
-                shouldBreak = true;
-            } else if (currentChunk.length >= 3) {
-                if (currentChunk.length >= 5 || currentChunkLength > 25) {
-                    // Force break if too long
-                    shouldBreak = true;
-                } else if (!isGlue) {
-                    // Break if acceptable length and not ending on a connector
-                    shouldBreak = true;
-                }
+                flushChunk();
             }
-
-            if (shouldBreak || i === rawWords.length - 1) {
-                // Flush chunk
-                const chunkText = currentChunk.join(' ');
-                const chunkWords = currentChunk;
-                const wordInfos = chunkWords.map(processWord);
-                const chunkCleanText = wordInfos.map(w => w.cleanText).join(' ');
-
-                // ORP: Middle of chunk
-                const middleWordIndex = Math.floor(chunkWords.length / 2);
-                let orpPosition = 0;
-                for (let j = 0; j < middleWordIndex; j++) {
-                    orpPosition += chunkWords[j].length + 1;
-                }
-                const midInfo = wordInfos[middleWordIndex];
-                orpPosition += calculateORP(midInfo.cleanText) + midInfo.leadingOffset;
-
-                // Max Multiplier + length bonus
-                const maxMultiplier = Math.max(...wordInfos.map(w => w.multiplier));
-
-                // Slightly longer delay for longer chunks
-                const chunkDurationMult = maxMultiplier * (1 + (chunkWords.length - 1) * 0.15);
-
-                tokens.push({
-                    id: `smart-${tokens.length}-${chunkWords[0]}`,
-                    text: chunkText,
-                    cleanText: chunkCleanText,
-                    orpIndex: orpPosition,
-                    delayMultiplier: chunkDurationMult,
-                    isChunk: true,
-                    isSentenceEnd: hasPunctuation && /[.!?]/.test(word),
-                    hasSpaceAfter: true,
-                });
-
-                currentChunk = [];
-                currentChunkLength = 0;
+            // Break at Cowan's limit
+            else if (currentChunk.length >= MAX_CHUNK_WORDS) {
+                flushChunk();
             }
         }
+
+        // Flush any remaining words
+        flushChunk();
+
         return tokens;
     }
 

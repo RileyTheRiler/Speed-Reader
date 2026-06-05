@@ -16,7 +16,8 @@ import {
     Minimize,
     Eye,
     EyeOff,
-    Settings
+    Settings,
+    BookOpen
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { SettingToggle } from './ui/SettingToggle';
@@ -220,6 +221,17 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                             <SkipForward size={16} />
                         </button>
                     </div>
+
+                    {/* Prominent Re-read Button (Schotter et al. 2014: regressions support comprehension) */}
+                    <button
+                        onClick={skipToPrevSentence}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 hover:text-purple-200 rounded-lg transition-colors text-xs font-medium border border-purple-500/30"
+                        title="Re-read last sentence (Shift+Left)"
+                        aria-label="Re-read last sentence"
+                    >
+                        <BookOpen size={14} />
+                        Re-read
+                    </button>
                 </div>
 
                 {/* Center: Play/Pause */}
@@ -259,9 +271,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                             }`} />
                             {readability.badge} · Grade {readability.gradeLevel}
                         </span>
-                        <span className="text-gray-400">
-                            ~{readability.suggestedWpm} WPM suggested
-                        </span>
+                        <button
+                            onClick={() => setWpm(readability.suggestedWpm)}
+                            className="text-blue-400 hover:text-blue-300 transition-colors cursor-pointer hover:underline"
+                            title="Set WPM to suggested speed for this text"
+                        >
+                            ~{readability.suggestedWpm} WPM suggested ›
+                        </button>
                     </div>
                 )}
                 <div className="flex items-center gap-4">
