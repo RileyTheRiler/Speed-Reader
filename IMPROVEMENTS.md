@@ -1,4 +1,4 @@
-# Hypersonic Reader - Improvements Roadmap
+# Quickie Read - Improvements Roadmap
 
 A comprehensive list of improvements to make this the best speed reading app.
 

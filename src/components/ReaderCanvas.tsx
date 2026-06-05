@@ -69,7 +69,7 @@ export const ReaderCanvas: React.FC = () => {
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
-                a.download = `hypersonic-read-${new Date().getTime()}.webm`;
+                a.download = `quickie-read-${new Date().getTime()}.webm`;
                 document.body.appendChild(a);
                 a.click();
 
