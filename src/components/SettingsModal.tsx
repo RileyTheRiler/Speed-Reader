@@ -1,8 +1,9 @@
 import React from 'react';
-import { X, Eye, Zap, BookOpen, Layers, Accessibility } from 'lucide-react';
+import { X, Eye, Zap, BookOpen, Layers, Accessibility, Volume2 } from 'lucide-react';
 import { useReaderStore } from '../store/useReaderStore';
 import { clsx } from 'clsx';
 import { SettingToggle } from './ui/SettingToggle';
+import { useVoices } from '../hooks/useVoices';
 
 export const SettingsModal: React.FC = () => {
     const {
@@ -11,6 +12,8 @@ export const SettingsModal: React.FC = () => {
         settings,
         updateSettings
     } = useReaderStore();
+
+    const voices = useVoices();
 
     if (!isSettingsOpen) return null;
 
@@ -46,7 +49,7 @@ export const SettingsModal: React.FC = () => {
                             {/* Mode Selection */}
                             <div className="col-span-full bg-gray-800/50 p-4 rounded-lg space-y-3">
                                 <label className="text-sm text-gray-300 font-medium">Reading Mode</label>
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-3 gap-2">
                                     <button
                                         onClick={() => updateSettings({ readingMode: 'rsvp' })}
                                         className={clsx(
@@ -71,11 +74,25 @@ export const SettingsModal: React.FC = () => {
                                         <BookOpen size={18} />
                                         Highlighter (Pacer)
                                     </button>
+                                    <button
+                                        onClick={() => updateSettings({ readingMode: 'bimodal' })}
+                                        className={clsx(
+                                            "flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-transparent transition-all",
+                                            settings.readingMode === 'bimodal'
+                                                ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
+                                                : "bg-gray-700 text-gray-400 hover:bg-gray-600"
+                                        )}
+                                    >
+                                        <Volume2 size={18} />
+                                        Listen (Bimodal)
+                                    </button>
                                 </div>
                                 <p className="text-xs text-gray-500">
                                     {settings.readingMode === 'rsvp'
                                         ? "Rapid Serial Visual Presentation: Words flash one by one."
-                                        : "Full text view with a moving highlight guide."}
+                                        : settings.readingMode === 'pacer'
+                                            ? "Full text view with a moving highlight guide."
+                                            : "Reads the text aloud while highlighting each spoken word — evidence-backed bimodal reading for ADHD focus and comprehension."}
                                 </p>
                             </div>
 
@@ -94,6 +111,66 @@ export const SettingsModal: React.FC = () => {
                                         checked={settings.smartChunking}
                                         onChange={(v) => updateSettings({ smartChunking: v })}
                                     />
+                                </>
+                            )}
+
+                            {/* Bimodal (Listen) Options */}
+                            {settings.readingMode === 'bimodal' && (
+                                <>
+                                    <div className="col-span-full bg-gray-800/30 p-4 rounded-lg space-y-3">
+                                        <label htmlFor="tts-voice-select" className="text-sm text-gray-300 font-medium">
+                                            Voice
+                                        </label>
+                                        <select
+                                            id="tts-voice-select"
+                                            value={settings.ttsVoiceURI}
+                                            onChange={(e) => updateSettings({ ttsVoiceURI: e.target.value })}
+                                            disabled={voices.length === 0}
+                                            className="w-full bg-gray-700 text-white rounded-lg px-3 py-2 border border-gray-600 focus:border-blue-500 outline-none disabled:opacity-50"
+                                        >
+                                            <option value="">Auto (default voice)</option>
+                                            {voices.map((v) => (
+                                                <option key={v.voiceURI} value={v.voiceURI}>
+                                                    {v.name} ({v.lang}){v.localService ? '' : ' · online'}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <p className="text-xs text-gray-500">
+                                            For natural prosody, prefer an online/neural voice if your browser offers one (e.g. Microsoft or Google voices).
+                                        </p>
+                                    </div>
+
+                                    <SettingToggle
+                                        label="Line Focus"
+                                        description="Dim sentences other than the one being read"
+                                        checked={settings.ttsLineFocus}
+                                        onChange={(v) => updateSettings({ ttsLineFocus: v })}
+                                    />
+
+                                    <div className="bg-gray-800/30 p-4 rounded-lg space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <label htmlFor="tts-pitch" className="text-sm text-gray-300 font-medium cursor-pointer">
+                                                Voice Pitch
+                                            </label>
+                                            <span className="text-sm text-white font-mono">{settings.ttsPitch.toFixed(1)}</span>
+                                        </div>
+                                        <input
+                                            id="tts-pitch"
+                                            type="range"
+                                            min="0"
+                                            max="2"
+                                            step="0.1"
+                                            value={settings.ttsPitch}
+                                            onChange={(e) => updateSettings({ ttsPitch: Number(e.target.value) })}
+                                            className="w-full accent-blue-500 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                                            aria-label="Voice pitch"
+                                        />
+                                    </div>
+
+                                    <p className="col-span-full text-xs text-gray-500">
+                                        Speed follows the WPM control. 200–300 WPM is the focus sweet spot: fast enough to occupy the
+                                        phonological loop and reduce mind-wandering, while keeping comprehension high.
+                                    </p>
                                 </>
                             )}
                         </div>

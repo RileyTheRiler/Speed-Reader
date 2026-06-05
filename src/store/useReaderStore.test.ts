@@ -37,6 +37,9 @@ describe('useReaderStore', () => {
         smartRewind: false,
         punctuationPause: false,
         sentenceWrapUp: true,
+        ttsVoiceURI: '',
+        ttsPitch: 1,
+        ttsLineFocus: true,
       },
     })
   })
@@ -210,6 +213,26 @@ describe('useReaderStore', () => {
       getState().updateSettings({ smartChunking: true })
       // Smart chunking typically produces fewer tokens
       expect(getState().tokens.length).toBeLessThanOrEqual(normalTokenCount)
+    })
+
+    it('selects bimodal reading mode', () => {
+      getState().updateSettings({ readingMode: 'bimodal' })
+      expect(getState().settings.readingMode).toBe('bimodal')
+    })
+
+    it('does not retokenize when switching to bimodal mode', () => {
+      getState().setInputText('Hello world, this is a test.')
+      const tokensBefore = getState().tokens
+      getState().updateSettings({ readingMode: 'bimodal' })
+      // readingMode is not a tokenization-affecting setting; tokens are untouched
+      expect(getState().tokens).toBe(tokensBefore)
+    })
+
+    it('updates bimodal TTS settings', () => {
+      getState().updateSettings({ ttsVoiceURI: 'en-GB-1', ttsPitch: 1.4, ttsLineFocus: false })
+      expect(getState().settings.ttsVoiceURI).toBe('en-GB-1')
+      expect(getState().settings.ttsPitch).toBe(1.4)
+      expect(getState().settings.ttsLineFocus).toBe(false)
     })
   })
 

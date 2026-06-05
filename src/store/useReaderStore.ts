@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { Token } from '../utils/tokenizer';
 import { tokenize } from '../utils/tokenizer';
 import { sanitizeInput } from '../utils/security';
+import { getSentenceRange, sentenceText } from '../utils/sentences';
 
 interface ReaderSettings {
     chunkSize: number;
@@ -14,13 +15,18 @@ interface ReaderSettings {
     highlightColor: string;
     aspectRatio: '16:9' | '9:16';
     fontFamily: 'sans' | 'serif' | 'mono' | 'dyslexic';
-    readingMode: 'rsvp' | 'pacer';
+    readingMode: 'rsvp' | 'pacer' | 'bimodal';
     smartChunking: boolean; // "Chunking Mode" - uses NLP to split phrases
     peripheralMode: boolean; // "Peripheral Trainer" - fades outer words
     bionicReading: boolean; // "Bionic Reading" - bolds first half
     smartRewind: boolean; // Rewind on pause
     punctuationPause: boolean; // Pause at commas/periods
     sentenceWrapUp: boolean; // Extra pause at sentence boundaries (Masson 1983)
+
+    // Bimodal reading (text-to-speech + synchronized highlighting)
+    ttsVoiceURI: string; // selected speech voice; '' => engine default
+    ttsPitch: number; // voice pitch 0–2 (1 = normal)
+    ttsLineFocus: boolean; // dim non-current sentences (Immersive Reader "Line Focus")
 }
 
 interface ReaderState {
@@ -105,6 +111,9 @@ export const useReaderStore = create<ReaderState>()(
                 smartRewind: false,
                 punctuationPause: false,
                 sentenceWrapUp: true, // Default on — evidence strongly supports this
+                ttsVoiceURI: '',
+                ttsPitch: 1,
+                ttsLineFocus: true,
             },
 
             setInputText: (text) => {
@@ -222,36 +231,7 @@ export const useReaderStore = create<ReaderState>()(
             getCurrentSentence: () => {
                 const { tokens, currentIndex } = get();
                 if (tokens.length === 0) return '';
-
-                // Find start
-                let start = currentIndex;
-                for (let i = currentIndex - 1; i >= 0; i--) {
-                    if (tokens[i]?.isSentenceEnd) {
-                        start = i + 1;
-                        break;
-                    }
-                    if (i === 0) start = 0;
-                }
-
-                // Find end
-                let end = tokens.length;
-                for (let i = currentIndex; i < tokens.length; i++) {
-                    if (tokens[i]?.isSentenceEnd) {
-                        end = i + 1;
-                        break;
-                    }
-                }
-
-                // Construct sentence
-                // We should respect spacing? Token has `hasSpaceAfter`
-                let sentence = '';
-                for (let i = start; i < end; i++) {
-                    sentence += tokens[i].text;
-                    if (tokens[i].hasSpaceAfter && i !== end - 1) {
-                        sentence += ' ';
-                    }
-                }
-                return sentence;
+                return sentenceText(tokens, getSentenceRange(tokens, currentIndex));
             },
         }),
         {
