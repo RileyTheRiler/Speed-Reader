@@ -36,14 +36,8 @@ interface ReaderState {
 
     isSidePanelOpen: boolean;
     isSettingsOpen: boolean;
-    isSummaryOpen: boolean;
     showInput: boolean;
     isZenMode: boolean;
-
-    // Auto-Summary State
-    summary: string | null;
-    isGeneratingSummary: boolean;
-    apiKey: string | null;
 
     // Settings (persisted)
     settings: ReaderSettings;
@@ -62,14 +56,8 @@ interface ReaderState {
     toggleSidePanel: () => void;
     toggleSettings: () => void;
     toggleZenMode: () => void;
-    toggleSummary: () => void;
     setShowInput: (show: boolean) => void;
     setIsFullscreen: (isFullscreen: boolean) => void;
-
-    // Auto-Summary Actions
-    setApiKey: (key: string | null) => void;
-    setSummary: (summary: string | null) => void;
-    setIsGeneratingSummary: (isGenerating: boolean) => void;
 
     // Skip controls
     skipForward: (count?: number) => void;
@@ -96,13 +84,8 @@ export const useReaderStore = create<ReaderState>()(
             wpm: 300,
             isSidePanelOpen: false,
             isSettingsOpen: false,
-            isSummaryOpen: false, // Added
             showInput: true,
             isZenMode: false,
-
-            summary: null,
-            isGeneratingSummary: false,
-            apiKey: null,
 
             settings: {
                 chunkSize: 1,
@@ -124,9 +107,6 @@ export const useReaderStore = create<ReaderState>()(
 
             setInputText: (text) => {
                 const { settings } = get();
-                const cleanText = sanitizeInput(text);
-                const tokens = tokenize(cleanText, settings.chunkSize, settings.smartChunking);
-                set({ inputText: cleanText, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
                 const sanitizedText = sanitizeInput(text);
                 const tokens = tokenize(sanitizedText, settings.chunkSize, settings.smartChunking);
                 set({ inputText: sanitizedText, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
@@ -176,15 +156,10 @@ export const useReaderStore = create<ReaderState>()(
             toggleSidePanel: () => set((state) => ({ isSidePanelOpen: !state.isSidePanelOpen })),
             toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
             toggleZenMode: () => set((state) => ({ isZenMode: !state.isZenMode })),
-            toggleSummary: () => set((state) => ({ isSummaryOpen: !state.isSummaryOpen })),
 
             setShowInput: (show) => set({ showInput: show }),
 
             setIsFullscreen: (isFullscreen) => set({ isFullscreen }),
-
-            setApiKey: (apiKey) => set({ apiKey }),
-            setSummary: (summary) => set({ summary }),
-            setIsGeneratingSummary: (isGeneratingSummary) => set({ isGeneratingSummary }),
 
             // Skip controls
             skipForward: (count = 5) => {
