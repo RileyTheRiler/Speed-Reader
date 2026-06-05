@@ -188,6 +188,12 @@ export const SettingsModal: React.FC = () => {
                                 checked={settings.punctuationPause}
                                 onChange={(v) => updateSettings({ punctuationPause: v })}
                             />
+                            <SettingToggle
+                                label="Sentence Wrap-Up"
+                                description="Extra pause at sentence ends to aid comprehension (Masson, 1983)"
+                                checked={settings.sentenceWrapUp}
+                                onChange={(v) => updateSettings({ sentenceWrapUp: v })}
+                            />
                         </div>
                     </section>
 

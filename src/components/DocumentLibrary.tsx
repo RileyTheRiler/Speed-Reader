@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, FileText, Trash2, Clock, BookOpen, Search, FolderOpen } from 'lucide-react';
+import { X, FileText, Trash2, Clock, BookOpen, Search, FolderOpen, RefreshCw } from 'lucide-react';
 import { clsx } from 'clsx';
+import { isReviewDue, getReviewStatus } from '../utils/spacedRepetition';
 
 interface SavedDocument {
   id: string;
@@ -11,6 +12,11 @@ interface SavedDocument {
   lastReadAt: string | null;
   lastPosition: number;
   category?: string;
+  // Spaced repetition fields
+  nextReviewAt?: string;
+  interval?: number;
+  easeFactor?: number;
+  lastReviewedAt?: string | null;
 }
 
 const LIBRARY_STORAGE_KEY = 'hypersonic-document-library';
@@ -134,10 +140,19 @@ export const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
     onClose();
   };
 
-  const filteredDocuments = documents.filter(doc =>
-    doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredDocuments = documents
+    .filter(doc =>
+      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doc.content.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .sort((a, b) => {
+      // Sort due-for-review documents to top
+      const aDue = a.nextReviewAt ? isReviewDue({ repetitions: 0, interval: a.interval || 1, easeFactor: a.easeFactor || 2.5, nextReviewAt: a.nextReviewAt, lastReviewedAt: a.lastReviewedAt || null }) : false;
+      const bDue = b.nextReviewAt ? isReviewDue({ repetitions: 0, interval: b.interval || 1, easeFactor: b.easeFactor || 2.5, nextReviewAt: b.nextReviewAt, lastReviewedAt: b.lastReviewedAt || null }) : false;
+      if (aDue && !bDue) return -1;
+      if (!aDue && bDue) return 1;
+      return 0;
+    });
 
   if (!isOpen) return null;
 
@@ -266,6 +281,32 @@ export const DocumentLibrary: React.FC<DocumentLibraryProps> = ({
                         {doc.lastReadAt && doc.lastPosition > 0 && (
                           <span className="text-blue-400">
                             {Math.round((doc.lastPosition / doc.wordCount) * 100)}% read
+                          </span>
+                        )}
+                        {doc.nextReviewAt && isReviewDue({
+                          repetitions: 0, interval: doc.interval || 1,
+                          easeFactor: doc.easeFactor || 2.5,
+                          nextReviewAt: doc.nextReviewAt,
+                          lastReviewedAt: doc.lastReviewedAt || null
+                        }) && (
+                          <span className="text-amber-400 flex items-center gap-1 font-medium">
+                            <RefreshCw size={10} />
+                            Due for review
+                          </span>
+                        )}
+                        {doc.nextReviewAt && !isReviewDue({
+                          repetitions: 0, interval: doc.interval || 1,
+                          easeFactor: doc.easeFactor || 2.5,
+                          nextReviewAt: doc.nextReviewAt,
+                          lastReviewedAt: doc.lastReviewedAt || null
+                        }) && (
+                          <span className="text-gray-500 text-[10px]">
+                            {getReviewStatus({
+                              repetitions: 0, interval: doc.interval || 1,
+                              easeFactor: doc.easeFactor || 2.5,
+                              nextReviewAt: doc.nextReviewAt,
+                              lastReviewedAt: doc.lastReviewedAt || null
+                            })}
                           </span>
                         )}
                       </div>

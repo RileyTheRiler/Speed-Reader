@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
 import { useShallow } from 'zustand/react/shallow';
+import { analyzeReadability } from '../utils/readability';
 import {
     Play,
     Pause,
@@ -19,7 +20,6 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { SettingToggle } from './ui/SettingToggle';
-import { ReadingProgress } from './ReadingProgress';
 
 interface ControlPanelProps {
     onToggleInput: () => void;
@@ -70,6 +70,20 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
             toggleSettings: state.toggleSettings
         }))
     );
+
+    // WPM zone indicator
+    const getWpmZone = (wpm: number) => {
+        if (wpm <= 300) return { label: 'Comprehension', color: 'text-emerald-400', bg: 'bg-emerald-500/20' };
+        if (wpm <= 400) return { label: 'Speed Reading', color: 'text-yellow-400', bg: 'bg-yellow-500/20' };
+        if (wpm <= 600) return { label: 'Skimming', color: 'text-orange-400', bg: 'bg-orange-500/20' };
+        return { label: 'Scanning', color: 'text-red-400', bg: 'bg-red-500/20' };
+    };
+
+    const wpmZone = getWpmZone(wpm);
+
+    // Readability analysis (memoized by input text)
+    const inputText = useReaderStore((s) => s.inputText);
+    const readability = inputText.length > 50 ? analyzeReadability(inputText) : null;
 
     const toggleFullscreen = useCallback(() => {
         if (!document.fullscreenElement) {
@@ -156,8 +170,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
     return (
         <div className="flex flex-col gap-6 w-full max-w-5xl mx-auto p-4 md:p-6 bg-[#2a2a2a] rounded-xl border border-gray-800 shadow-lg mt-6">
 
-            {/* Stats Bar - Extracted to prevent re-renders of the entire panel */}
-            <ReadingProgress />
+
 
             {/* Main Controls */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -228,11 +241,30 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                 <div className="flex-1 flex flex-col items-center md:items-end gap-1">
                     <span className="text-4xl md:text-5xl font-bold font-mono text-white tracking-tighter">{wpm}</span>
                     <span className="text-xs text-gray-500 uppercase tracking-widest font-semibold">Words / Min</span>
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${wpmZone.color} ${wpmZone.bg}`}>
+                        {wpmZone.label}
+                    </span>
                 </div>
             </div>
 
             {/* Speed Control */}
-            <div className="bg-[#222] p-4 rounded-lg flex items-center gap-4">
+            <div className="bg-[#222] p-4 rounded-lg space-y-3">
+                {readability && (
+                    <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500 flex items-center gap-1.5">
+                            <span className={`inline-block w-2 h-2 rounded-full ${
+                                readability.badge === 'Easy' ? 'bg-emerald-400' :
+                                readability.badge === 'Moderate' ? 'bg-yellow-400' :
+                                readability.badge === 'Challenging' ? 'bg-orange-400' : 'bg-red-400'
+                            }`} />
+                            {readability.badge} · Grade {readability.gradeLevel}
+                        </span>
+                        <span className="text-gray-400">
+                            ~{readability.suggestedWpm} WPM suggested
+                        </span>
+                    </div>
+                )}
+                <div className="flex items-center gap-4">
                 <button
                     onClick={() => setWpm(wpm - 10)}
                     className="p-2 hover:bg-gray-700 rounded text-gray-400 hover:text-white transition-colors"
@@ -261,6 +293,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                 >
                     <span className="text-xl font-bold">+</span>
                 </button>
+                </div>
             </div>
 
             {/* Settings Grid */}
@@ -397,20 +430,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                 </div>
 
                 {/* Right Column - Actions */}
-                <div className="flex flex-col justify-between gap-4">
-                    {/* Keyboard Shortcuts Help */}
-                    <div className="text-xs text-gray-500 space-y-1 bg-gray-800/50 p-3 rounded-lg">
-                        <p className="font-semibold text-gray-400 mb-2">Keyboard Shortcuts</p>
-                        <p><kbd className="bg-gray-700 px-1.5 py-0.5 rounded text-gray-300">Space</kbd> Play/Pause</p>
-                        <p><kbd className="bg-gray-700 px-1.5 py-0.5 rounded text-gray-300">↑↓</kbd> Adjust Speed</p>
-                        <p><kbd className="bg-gray-700 px-1.5 py-0.5 rounded text-gray-300">←→</kbd> Skip ±5 Words</p>
-                        <p><kbd className="bg-gray-700 px-1.5 py-0.5 rounded text-gray-300">Shift+←→</kbd> Skip Sentence</p>
-                        <p><kbd className="bg-gray-700 px-1.5 py-0.5 rounded text-gray-300">R</kbd> Reset</p>
-                        <p><kbd className="bg-gray-700 px-1.5 py-0.5 rounded text-gray-300">F</kbd> Fullscreen</p>
-                    </div>
+                <div className="flex flex-col justify-end gap-4">
 
                     {/* Action Buttons */}
-                    <div className="flex items-center justify-end gap-3">
+                    <div className="flex flex-wrap items-center justify-center md:justify-end gap-3">
                         <button
                             onClick={toggleSettings}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-700 hover:bg-gray-700/50 text-sm text-gray-400 hover:text-gray-200 transition-colors"

@@ -15,6 +15,7 @@ describe('useReaderStore', () => {
       isRecording: false,
       isFullscreen: false,
       wpm: 300,
+      isCompleted: false,
       isSidePanelOpen: false,
       isSettingsOpen: false,
       showInput: true,
@@ -35,6 +36,7 @@ describe('useReaderStore', () => {
         bionicReading: false,
         smartRewind: false,
         punctuationPause: false,
+        sentenceWrapUp: true,
       },
     })
   })
@@ -234,34 +236,28 @@ describe('useReaderStore', () => {
 
   })
 
-  describe('computed helpers', () => {
-    beforeEach(() => {
-      getState().setInputText('word '.repeat(300).trim()) // 300 words
-      getState().setWpm(300)
+  describe('completion flow', () => {
+    it('marks completed', () => {
+      getState().setInputText('Hello world test.')
+      getState().play()
+      getState().markCompleted()
+
+      expect(getState().isCompleted).toBe(true)
+      expect(getState().isPlaying).toBe(false)
     })
 
-    it('calculates estimated time', () => {
-      const time = getState().getEstimatedTime()
-      expect(time).toBe(60) // 300 words at 300 WPM = 60 seconds
+    it('resets isCompleted when new text is set', () => {
+      getState().markCompleted()
+      expect(getState().isCompleted).toBe(true)
+
+      getState().setInputText('New text here')
+      expect(getState().isCompleted).toBe(false)
     })
 
-    it('calculates remaining time', () => {
-      getState().setCurrentIndex(150) // Halfway
-      const remaining = getState().getRemainingTime()
-      expect(remaining).toBe(30) // 150 words remaining at 300 WPM = 30 seconds
-    })
-
-    it('calculates progress percentage', () => {
-      getState().setCurrentIndex(150) // Halfway
-      const progress = getState().getProgress()
-      expect(progress).toBe(50)
-    })
-
-    it('returns 0 progress for empty tokens', () => {
-      getState().setInputText('')
-      const progress = getState().getProgress()
-      expect(progress).toBe(0)
+    it('starts with isCompleted false', () => {
+      expect(getState().isCompleted).toBe(false)
     })
   })
 
 })
+

@@ -20,6 +20,7 @@ interface ReaderSettings {
     bionicReading: boolean; // "Bionic Reading" - bolds first half
     smartRewind: boolean; // Rewind on pause
     punctuationPause: boolean; // Pause at commas/periods
+    sentenceWrapUp: boolean; // Extra pause at sentence boundaries (Masson 1983)
 }
 
 interface ReaderState {
@@ -33,6 +34,7 @@ interface ReaderState {
     isRecording: boolean;
     isFullscreen: boolean;
     wpm: number;
+    isCompleted: boolean;
 
     isSidePanelOpen: boolean;
     isSettingsOpen: boolean;
@@ -58,6 +60,7 @@ interface ReaderState {
     toggleZenMode: () => void;
     setShowInput: (show: boolean) => void;
     setIsFullscreen: (isFullscreen: boolean) => void;
+    markCompleted: () => void;
 
     // Skip controls
     skipForward: (count?: number) => void;
@@ -66,9 +69,6 @@ interface ReaderState {
     skipToPrevSentence: () => void;
 
     // Computed helpers
-    getEstimatedTime: () => number;
-    getRemainingTime: () => number;
-    getProgress: () => number;
     getCurrentSentence: () => string;
 }
 
@@ -82,6 +82,7 @@ export const useReaderStore = create<ReaderState>()(
             isRecording: false,
             isFullscreen: false,
             wpm: 300,
+            isCompleted: false,
             isSidePanelOpen: false,
             isSettingsOpen: false,
             showInput: true,
@@ -103,13 +104,14 @@ export const useReaderStore = create<ReaderState>()(
                 bionicReading: false,
                 smartRewind: false,
                 punctuationPause: false,
+                sentenceWrapUp: true, // Default on — evidence strongly supports this
             },
 
             setInputText: (text) => {
                 const { settings } = get();
                 const sanitizedText = sanitizeInput(text);
                 const tokens = tokenize(sanitizedText, settings.chunkSize, settings.smartChunking);
-                set({ inputText: sanitizedText, tokens, currentIndex: 0, isPlaying: false, isRecording: false });
+                set({ inputText: sanitizedText, tokens, currentIndex: 0, isPlaying: false, isRecording: false, isCompleted: false });
             },
 
             setTokens: (tokens) => set({ tokens }),
@@ -160,6 +162,8 @@ export const useReaderStore = create<ReaderState>()(
             setShowInput: (show) => set({ showInput: show }),
 
             setIsFullscreen: (isFullscreen) => set({ isFullscreen }),
+
+            markCompleted: () => set({ isCompleted: true, isPlaying: false }),
 
             // Skip controls
             skipForward: (count = 5) => {
@@ -214,24 +218,6 @@ export const useReaderStore = create<ReaderState>()(
             },
 
             // Computed helpers
-            getEstimatedTime: () => {
-                const { tokens, wpm } = get();
-                if (tokens.length === 0 || wpm === 0) return 0;
-                return (tokens.length / wpm) * 60; // seconds
-            },
-
-            getRemainingTime: () => {
-                const { tokens, currentIndex, wpm } = get();
-                if (tokens.length === 0 || wpm === 0) return 0;
-                const remaining = tokens.length - currentIndex;
-                return (remaining / wpm) * 60; // seconds
-            },
-
-            getProgress: () => {
-                const { tokens, currentIndex } = get();
-                if (tokens.length === 0) return 0;
-                return (currentIndex / tokens.length) * 100;
-            },
 
             getCurrentSentence: () => {
                 const { tokens, currentIndex } = get();
@@ -274,6 +260,19 @@ export const useReaderStore = create<ReaderState>()(
                 wpm: state.wpm,
                 settings: state.settings,
             }),
+            merge: (persistedState, currentState) => {
+                const persisted = persistedState as Partial<ReaderState> | undefined;
+                if (!persisted) return currentState;
+                return {
+                    ...currentState,
+                    ...persisted,
+                    // Deep-merge settings so new defaults aren't lost
+                    settings: {
+                        ...currentState.settings,
+                        ...(persisted.settings || {}),
+                    },
+                };
+            },
         }
     )
 );

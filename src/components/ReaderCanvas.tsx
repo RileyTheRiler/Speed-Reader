@@ -1,6 +1,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useReaderStore } from '../store/useReaderStore';
+import { getWordDelay } from '../utils/wordTiming';
 
 export const ReaderCanvas: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -336,9 +337,10 @@ export const ReaderCanvas: React.FC = () => {
                 accumulatorRef.current += deltaTime;
 
                 const currentToken = state.tokens[state.currentIndex];
-                const baseDelay = 60000 / state.wpm;
-                const multiplier = (currentToken && state.settings.punctuationPause) ? currentToken.delayMultiplier : 1;
-                const requiredDelay = baseDelay * multiplier;
+                const requiredDelay = getWordDelay(currentToken, state.wpm, {
+                    punctuationPause: state.settings.punctuationPause,
+                    sentenceWrapUp: state.settings.sentenceWrapUp,
+                });
 
                 if (accumulatorRef.current >= requiredDelay) {
                     accumulatorRef.current -= requiredDelay;
@@ -348,7 +350,7 @@ export const ReaderCanvas: React.FC = () => {
                     const nextIndex = state.currentIndex + 1;
 
                     if (nextIndex >= state.tokens.length) {
-                        state.pause();
+                        state.markCompleted();
                         if (state.isRecording) {
                             state.setIsRecording(false);
                         }

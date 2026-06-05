@@ -7,11 +7,10 @@ import { TextPanel } from './components/TextPanel';
 import { SettingsModal } from './components/SettingsModal';
 import { FileImport } from './components/FileImport';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { DocumentLibrary } from './components/DocumentLibrary';
+import { CompletionModal } from './components/CompletionModal';
 import {
-  FolderOpen,
-  Keyboard
+  FolderOpen
 } from 'lucide-react';
 
 function App() {
@@ -27,6 +26,8 @@ function App() {
     toggleZenMode,
     setCurrentIndex,
     readingMode,
+    isCompleted,
+    reset,
   } = useReaderStore(
       useShallow((state) => ({
           tokensLength: state.tokens.length,
@@ -40,10 +41,11 @@ function App() {
           toggleZenMode: state.toggleZenMode,
           setCurrentIndex: state.setCurrentIndex,
           readingMode: state.settings.readingMode,
+          isCompleted: state.isCompleted,
+          reset: state.reset,
       }))
   );
 
-  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
   const handleStart = () => {
@@ -54,6 +56,15 @@ function App() {
   const handleBackToInput = useCallback(() => {
     setShowInput(true);
   }, [setShowInput]);
+
+  const handleCompletionClose = useCallback(() => {
+    useReaderStore.setState({ isCompleted: false });
+  }, []);
+
+  const handleRestart = useCallback(() => {
+    useReaderStore.setState({ isCompleted: false });
+    reset();
+  }, [reset]);
 
   const handleSelectFromLibrary = (content: string, position?: number) => {
     setInputText(content);
@@ -75,13 +86,7 @@ function App() {
         if (isZenMode) {
           toggleZenMode();
         }
-        setIsShortcutsOpen(false);
         setIsLibraryOpen(false);
-      }
-
-      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
-        e.preventDefault();
-        setIsShortcutsOpen(true);
       }
     };
 
@@ -107,14 +112,6 @@ function App() {
           >
             <FolderOpen size={16} />
             <span className="hidden sm:inline">Library</span>
-          </button>
-          <button
-            onClick={() => setIsShortcutsOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-            aria-label="View keyboard shortcuts"
-          >
-            <Keyboard size={16} />
-            <span className="hidden sm:inline">Shortcuts</span>
           </button>
         </nav>
 
@@ -196,16 +193,18 @@ function App() {
 
         {/* Modals */}
         <SettingsModal />
-        <KeyboardShortcutsModal
-          isOpen={isShortcutsOpen}
-          onClose={() => setIsShortcutsOpen(false)}
-        />
         <DocumentLibrary
           isOpen={isLibraryOpen}
           onClose={() => setIsLibraryOpen(false)}
           onSelectDocument={handleSelectFromLibrary}
           currentText={inputText}
         />
+        {isCompleted && (
+          <CompletionModal
+            onClose={handleCompletionClose}
+            onRestart={handleRestart}
+          />
+        )}
       </div>
     </ErrorBoundary>
   );
