@@ -15,8 +15,7 @@ import {
     Minimize,
     Eye,
     EyeOff,
-    Settings,
-    Sparkles
+    Settings
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { SettingToggle } from './ui/SettingToggle';
@@ -428,15 +427,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                         >
                             <Maximize size={20} className="sm:w-6 sm:h-6" />
                             <span className="text-[10px] uppercase font-bold tracking-wider">Zen</span>
-                        </button>
-
-                        <button
-                            onClick={useReaderStore.getState().toggleSummary}
-                            className="p-2 sm:p-3 rounded-xl bg-[#444] hover:bg-[#555] text-gray-300 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-lg flex flex-col items-center gap-1 min-w-[60px]"
-                            title="AI Summary"
-                        >
-                            <Sparkles size={20} className="sm:w-6 sm:h-6 text-purple-400" />
-                            <span className="text-[10px] uppercase font-bold tracking-wider">Summary</span>
                         </button>
 
                         <button

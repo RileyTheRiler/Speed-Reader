@@ -17,12 +17,8 @@ describe('useReaderStore', () => {
       wpm: 300,
       isSidePanelOpen: false,
       isSettingsOpen: false,
-      isSummaryOpen: false,
       showInput: true,
       isZenMode: false,
-      summary: null,
-      isGeneratingSummary: false,
-      apiKey: null,
       settings: {
         chunkSize: 1,
         fontSize: 64,
@@ -236,11 +232,6 @@ describe('useReaderStore', () => {
       expect(getState().isZenMode).toBe(true)
     })
 
-    it('toggles summary modal', () => {
-      expect(getState().isSummaryOpen).toBe(false)
-      getState().toggleSummary()
-      expect(getState().isSummaryOpen).toBe(true)
-    })
   })
 
   describe('computed helpers', () => {
@@ -273,20 +264,4 @@ describe('useReaderStore', () => {
     })
   })
 
-  describe('summary state', () => {
-    it('sets API key', () => {
-      getState().setApiKey('test-key')
-      expect(getState().apiKey).toBe('test-key')
-    })
-
-    it('sets summary', () => {
-      getState().setSummary('This is a summary')
-      expect(getState().summary).toBe('This is a summary')
-    })
-
-    it('sets generating state', () => {
-      getState().setIsGeneratingSummary(true)
-      expect(getState().isGeneratingSummary).toBe(true)
-    })
-  })
 })

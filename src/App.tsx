@@ -5,19 +5,12 @@ import { ReaderCanvas } from './components/ReaderCanvas';
 import { ControlPanel } from './components/ControlPanel';
 import { TextPanel } from './components/TextPanel';
 import { SettingsModal } from './components/SettingsModal';
-import { SummaryModal } from './components/SummaryModal';
 import { FileImport } from './components/FileImport';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
-import { OnboardingTutorial } from './components/OnboardingTutorial';
-import { ReadingStatsModal, recordSession } from './components/ReadingStats';
 import { DocumentLibrary } from './components/DocumentLibrary';
-import { PresetProfiles } from './components/PresetProfiles';
 import {
   FolderOpen,
-  BarChart3,
-  Sliders,
-  HelpCircle,
   Keyboard
 } from 'lucide-react';
 
@@ -50,42 +43,17 @@ function App() {
       }))
   );
 
-  // Modal states
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
-  const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
-  const [isPresetsOpen, setIsPresetsOpen] = useState(false);
-  const [showTutorial, setShowTutorial] = useState(false);
-
-  // Track reading session
-  const [sessionStartIndex, setSessionStartIndex] = useState(0);
-  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
 
   const handleStart = () => {
     if (!inputText.trim()) return;
     setShowInput(false);
-    // Use getState() to access current index without subscription
-    setSessionStartIndex(useReaderStore.getState().currentIndex);
-    setSessionStartTime(Date.now());
   };
 
   const handleBackToInput = useCallback(() => {
-    // Record the session before going back
-    const { currentIndex, wpm, tokens } = useReaderStore.getState();
-
-    if (sessionStartTime && tokens.length > 0) {
-      const wordsRead = currentIndex - sessionStartIndex;
-      const timeSpent = (Date.now() - sessionStartTime) / 1000;
-      const completionRate = (currentIndex / tokens.length) * 100;
-
-      if (wordsRead > 10 && timeSpent > 5) {
-        recordSession(wordsRead, timeSpent, wpm, completionRate);
-      }
-    }
-
     setShowInput(true);
-    setSessionStartTime(null);
-  }, [sessionStartTime, sessionStartIndex, setShowInput]);
+  }, [setShowInput]);
 
   const handleSelectFromLibrary = (content: string, position?: number) => {
     setInputText(content);
@@ -95,14 +63,10 @@ function App() {
       }, 100);
     }
     setShowInput(false);
-    setSessionStartIndex(position || 0);
-    setSessionStartTime(Date.now());
   };
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
@@ -111,14 +75,10 @@ function App() {
         if (isZenMode) {
           toggleZenMode();
         }
-        // Close any open modals
         setIsShortcutsOpen(false);
-        setIsStatsOpen(false);
         setIsLibraryOpen(false);
-        setIsPresetsOpen(false);
       }
 
-      // ? key opens keyboard shortcuts
       if (e.key === '?' || (e.shiftKey && e.key === '/')) {
         e.preventDefault();
         setIsShortcutsOpen(true);
@@ -131,7 +91,6 @@ function App() {
 
   const isReading = tokensLength > 0 && !showInput;
 
-  // Check for reduced motion preference
   const prefersReducedMotion = typeof window !== 'undefined'
     ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
     : false;
@@ -150,36 +109,12 @@ function App() {
             <span className="hidden sm:inline">Library</span>
           </button>
           <button
-            onClick={() => setIsPresetsOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-            aria-label="Open preset profiles"
-          >
-            <Sliders size={16} />
-            <span className="hidden sm:inline">Presets</span>
-          </button>
-          <button
-            onClick={() => setIsStatsOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-            aria-label="View reading statistics"
-          >
-            <BarChart3 size={16} />
-            <span className="hidden sm:inline">Stats</span>
-          </button>
-          <button
             onClick={() => setIsShortcutsOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
             aria-label="View keyboard shortcuts"
           >
             <Keyboard size={16} />
             <span className="hidden sm:inline">Shortcuts</span>
-          </button>
-          <button
-            onClick={() => setShowTutorial(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-            aria-label="View tutorial"
-          >
-            <HelpCircle size={16} />
-            <span className="hidden sm:inline">Help</span>
           </button>
         </nav>
 
@@ -261,33 +196,15 @@ function App() {
 
         {/* Modals */}
         <SettingsModal />
-        <SummaryModal
-          isOpen={useReaderStore.getState().isSummaryOpen}
-          onClose={useReaderStore.getState().toggleSummary}
-        />
         <KeyboardShortcutsModal
           isOpen={isShortcutsOpen}
           onClose={() => setIsShortcutsOpen(false)}
-        />
-        <ReadingStatsModal
-          isOpen={isStatsOpen}
-          onClose={() => setIsStatsOpen(false)}
         />
         <DocumentLibrary
           isOpen={isLibraryOpen}
           onClose={() => setIsLibraryOpen(false)}
           onSelectDocument={handleSelectFromLibrary}
           currentText={inputText}
-        />
-        <PresetProfiles
-          isOpen={isPresetsOpen}
-          onClose={() => setIsPresetsOpen(false)}
-        />
-
-        {/* Onboarding Tutorial */}
-        <OnboardingTutorial
-          onComplete={() => setShowTutorial(false)}
-          forceShow={showTutorial}
         />
       </div>
     </ErrorBoundary>
