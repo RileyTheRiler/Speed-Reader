@@ -46,6 +46,7 @@ export function useBimodalPlayback(): void {
     const startTsRef = useRef(0);
     const lastBoundaryAtRef = useRef(0);
     const boundariesSupportedRef = useRef<boolean | null>(null); // null = unknown
+    const lastVoiceURIRef = useRef<string | null>(null);         // voice used for last detection
     const fallbackTimerRef = useRef<number | null>(null);
     const estTimerRef = useRef<number | null>(null);
 
@@ -157,6 +158,14 @@ export function useBimodalPlayback(): void {
             startTsRef.current = performance.now();
 
             const voiceURI = resolveVoiceURI(settings.ttsVoiceURI, provider.getVoices());
+
+            // Boundary support is per-voice: a new voice may not emit word-boundary
+            // events even if the previous one did (or vice versa). Reset detection so
+            // the watchdog/fallback re-runs for the new voice.
+            if (lastVoiceURIRef.current !== voiceURI) {
+                boundariesSupportedRef.current = null;
+                lastVoiceURIRef.current = voiceURI;
+            }
 
             provider.speak({
                 text: slice.text,

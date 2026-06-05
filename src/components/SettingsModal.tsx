@@ -52,6 +52,7 @@ export const SettingsModal: React.FC = () => {
                                 <div className="grid grid-cols-3 gap-2">
                                     <button
                                         onClick={() => updateSettings({ readingMode: 'rsvp' })}
+                                        aria-pressed={settings.readingMode === 'rsvp'}
                                         className={clsx(
                                             "flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-transparent transition-all",
                                             settings.readingMode === 'rsvp'
@@ -64,6 +65,7 @@ export const SettingsModal: React.FC = () => {
                                     </button>
                                     <button
                                         onClick={() => updateSettings({ readingMode: 'pacer' })}
+                                        aria-pressed={settings.readingMode === 'pacer'}
                                         className={clsx(
                                             "flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-transparent transition-all",
                                             settings.readingMode === 'pacer'
@@ -76,6 +78,7 @@ export const SettingsModal: React.FC = () => {
                                     </button>
                                     <button
                                         onClick={() => updateSettings({ readingMode: 'bimodal' })}
+                                        aria-pressed={settings.readingMode === 'bimodal'}
                                         className={clsx(
                                             "flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-transparent transition-all",
                                             settings.readingMode === 'bimodal'
