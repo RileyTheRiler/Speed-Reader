@@ -1,92 +1,46 @@
-# Hypersonic Reader
+# Quickie Read
 
-A powerful, feature-rich speed reading web application built with React and TypeScript. Master the art of speed reading with scientifically-backed techniques like RSVP (Rapid Serial Visual Presentation) and Optimal Recognition Point (ORP) highlighting.
+A cognitive science-grounded speed reading web application built with React and TypeScript. Quickie Read optimizes reading pace and comprehension using evidence-based techniques, including Rapid Serial Visual Presentation (RSVP), Optimal Recognition Point (ORP) highlighting, and cognitive integration tools.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![React](https://img.shields.io/badge/React-19.2-61dafb.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6.svg)
 ![Vite](https://img.shields.io/badge/Vite-7.2-646cff.svg)
 
-## Features
+---
+
+## 🧠 Evidence-Based Design
+
+Unlike traditional speed reading apps that prioritize speed at the cost of comprehension, **Quickie Read** integrates peer-reviewed cognitive science principles to ensure retention:
+
+1. **Pre-Reading Schema Activation** (Anderson & Pearson, 1984): Generates a paragraph-level outline and prompts prior-knowledge reflection for texts over 100 words before reading begins.
+2. **Grammar-Aware Chunker** (Cowan, 2001): Restricts chunks to a maximum of 4 words (Cowan's working-memory limit) and breaks on clause boundaries (commas, semicolons, dashes) or before conjunctions/clause starters (and, but, because) to preserve syntactic units.
+3. **Sentence Wrap-Up Pauses** (Masson, 1983): Introduces a 2.5× pause multiplier at the end of sentences, giving the brain crucial integration time before the next sentence begins.
+4. **Prominent Re-Read Affordance** (Schotter et al., 2014): Provides an easily accessible "Re-read" button to support regression, which is essential for correcting comprehension failures.
+5. **Auto-WPM Suggestion** (Brysbaert, 2019): Analyzes text complexity using the Flesch–Kincaid and Coleman–Liau formulas to suggest and apply an evidence-based WPM (e.g., slower pacing for academic texts).
+6. **Free Recall & Retrieval Practice** (Dunlosky et al., 2013; Roediger & Karpicke, 2006): Prompts active recall writing and self-rating post-reading (the #1 ranked learning technique with d ≈ 0.51).
+7. **Spaced Repetition Scheduler** (Cepeda et al., 2006/2008): Automatically calculates the next review interval using a local SM-2 algorithm to prompt timely re-reads.
+
+---
+
+## 🛠️ Features
 
 ### Core Reading Modes
+- **RSVP Mode** - Displays words sequentially at the Optimal Recognition Point (ORP) focal point to eliminate saccadic eye movements.
+- **Pacer Mode** - Displays full text with a moving highlight line to guide physical reading.
 
-- **RSVP Mode** - Rapid Serial Visual Presentation displays words one at a time with ORP (Optimal Recognition Point) highlighting to reduce eye movement
-- **Highlighter/Pacer Mode** - Full text view with a moving highlight guide for a more traditional reading experience
+### Layout & Customization
+- **Dyslexia-Friendly** - Toggle OpenDyslexic font and high-contrast color themes (Midnight, Paper, Solar, Hi-Contrast).
+- **Zen Mode** - Removes all distractions to focus entirely on the reading panel.
+- **Bionic Reading** - Bolds the initial part of words to guide the eye's fixation path.
 
-### Speed & Control
+### Supported Formats
+- **PDF & EPUB Import** - Parse and read e-books or documents directly.
+- **Plain Text** - Paste text directly into the dashboard.
 
-- **Adjustable WPM** - Read from 100 to 1000 words per minute
-- **Smart Chunking** - Group words by natural phrases for faster comprehension
-- **Punctuation Pausing** - Automatic pauses at sentence boundaries for better understanding
-- **Smart Rewind** - Automatically rewind 5 words when pausing for context
+---
 
-### Accessibility Features
-
-- **Bionic Reading** - Bold the first part of each word to guide your eyes
-- **OpenDyslexic Font** - Dyslexia-friendly typeface option
-- **High Contrast Themes** - Multiple color themes including high contrast options
-- **Keyboard Navigation** - Full keyboard control for all features
-- **Reduced Motion Support** - Respects system preferences for reduced motion
-
-### File Support
-
-- **PDF Import** - Extract and read text from PDF documents
-- **EPUB Import** - Read e-books directly in the app
-- **Plain Text** - Paste or import any text file
-
-### AI Features
-
-- **AI Summary** - Get AI-powered summaries using Google Gemini
-- **Key Insights** - Quick comprehension check before or after reading
-
-### Progress & Statistics
-
-- **Reading Statistics** - Track words read, time spent, and average WPM
-- **Streak Tracking** - Build and maintain reading streaks
-- **Session History** - Review your recent reading sessions
-- **Progress Persistence** - Resume where you left off
-
-### Organization
-
-- **Document Library** - Save documents locally for quick access
-- **Preset Profiles** - Save and load custom reading configurations
-- **Import/Export** - Share your presets with others
-
-### Export & Recording
-
-- **Video Export** - Record and export your reading session as WebM video
-- **60fps Capture** - High-quality video output for sharing
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm or yarn
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/Speed-Reader.git
-cd Speed-Reader
-
-# Install dependencies
-npm install
-
-# Start development server
-npm run dev
-```
-
-### Build for Production
-
-```bash
-npm run build
-npm run preview
-```
-
-## Keyboard Shortcuts
+## ⌨️ Keyboard Shortcuts
 
 | Shortcut | Action |
 |----------|--------|
@@ -99,111 +53,75 @@ npm run preview
 | `↑` | Increase speed +10 WPM |
 | `↓` | Decrease speed -10 WPM |
 | `F` | Toggle fullscreen |
-| `Esc` | Exit fullscreen / Zen mode |
+| `Esc` | Exit fullscreen / Zen mode / Close Library |
 | `?` | Show keyboard shortcuts |
-
-## Project Structure
-
-```
-src/
-├── components/           # React components
-│   ├── App.tsx           # Main app container
-│   ├── ControlPanel.tsx  # Playback controls
-│   ├── ReaderCanvas.tsx  # RSVP display with ORP highlighting
-│   ├── TextPanel.tsx     # Highlighter mode view
-│   ├── SettingsModal.tsx # Settings interface
-│   ├── SummaryModal.tsx  # AI summary interface
-│   ├── KeyboardShortcutsModal.tsx
-│   ├── OnboardingTutorial.tsx
-│   ├── ReadingStats.tsx
-│   ├── DocumentLibrary.tsx
-│   ├── PresetProfiles.tsx
-│   ├── FileImport.tsx
-│   └── ErrorBoundary.tsx
-├── store/
-│   └── useReaderStore.ts # Zustand state management
-├── utils/
-│   ├── tokenizer.ts      # Text tokenization with ORP
-│   ├── orp.ts            # ORP calculation algorithm
-│   ├── fileParser.ts     # PDF/EPUB parsing
-│   ├── llmService.ts     # AI integration
-│   └── errorService.ts   # Error handling
-├── test/
-│   └── setup.ts          # Test configuration
-└── index.css             # Global styles
-```
-
-## Technology Stack
-
-- **React 19** - UI framework
-- **TypeScript** - Type safety
-- **Vite** - Build tool with fast HMR
-- **Zustand** - Lightweight state management
-- **Tailwind CSS** - Utility-first styling
-- **PDF.js** - PDF parsing
-- **EPUB.js** - EPUB parsing
-- **Google Generative AI** - AI summaries
-- **Vitest** - Unit testing
-- **React Testing Library** - Component testing
-
-## How ORP Works
-
-The Optimal Recognition Point (ORP) is the position within a word where the eye naturally focuses for fastest recognition. Hypersonic Reader calculates and highlights this point:
-
-- 1-4 characters: ORP at position 1
-- 5-9 characters: ORP at position 2
-- 10-13 characters: ORP at position 3
-- 14+ characters: ORP at position 4
-
-By centering each word on its ORP, your eyes stay fixed while words flow past, dramatically reducing saccadic eye movements.
-
-## Testing
-
-```bash
-# Run tests in watch mode
-npm run test
-
-# Run tests once
-npm run test:run
-
-# Run tests with coverage
-npm run test:coverage
-```
-
-## Configuration
-
-### Environment Variables
-
-For AI summaries, you'll need a Google Gemini API key. Enter it in the Summary modal when prompted (stored locally in your browser).
-
-### Customization
-
-The app supports extensive customization through the Settings modal:
-
-- **Themes**: Midnight, Paper, Solar, Hi-Contrast
-- **Fonts**: Sans Serif, Serif, Monospace, OpenDyslexic
-- **Colors**: Custom background, text, and highlight colors
-- **Reading Features**: Bionic reading, peripheral trainer, smart chunking
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Inspired by speed reading research and RSVP techniques
-- Thanks to the open-source community for the amazing libraries
 
 ---
 
-**Start reading faster today!**
+## 📁 Project Structure
+
+```text
+src/
+├── components/           # React Components
+│   ├── App.tsx           # Application layout and router logic
+│   ├── CompletionModal.tsx # Post-reading recall, rating, and review scheduler
+│   ├── ControlPanel.tsx  # Interactive playback, WPM, and readability controls
+│   ├── DocumentLibrary.tsx # Stored text index with spaced review due badges
+│   ├── ErrorBoundary.tsx # Global exception handler
+│   ├── FileImport.tsx    # Drag-and-drop file import target
+│   ├── PreviewModal.tsx  # Pre-reading outline and schema priming
+│   ├── ReaderCanvas.tsx  # Canvas-based RSVP rendering engine
+│   ├── SettingsModal.tsx # Dyslexia fonts, bionic reading, and wrap-up settings
+│   ├── TextPanel.tsx     # Pacer layout and sidebar text guide
+│   └── ui/               # Reusable UI subcomponents (SettingToggle.tsx)
+├── store/
+│   └── useReaderStore.ts # Zustand state store (deep-merge settings persist)
+└── utils/
+    ├── errorService.ts   # Error logging and reporting
+    ├── fileParser.ts     # PDF and EPUB format parsing
+    ├── journal.ts        # Reading journal (localStorage)
+    ├── orp.ts            # Optimal Recognition Point calculation
+    ├── readability.ts    # Flesch-Kincaid & Coleman-Liau readability formulas
+    ├── security.ts       # Input sanitization and limits
+    ├── spacedRepetition.ts # SM-2 scheduler utility
+    ├── tokenizer.ts      # Grammar-aware and smart RSVP tokenization
+    └── wordTiming.ts     # Punctuation & sentence wrap-up delays
+```
+
+---
+
+## 🚀 Getting Started
+
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/RileyTheRiler/Speed-Reader.git
+cd Speed-Reader
+
+# Install dependencies
+npm install
+
+# Start local dev server
+npm run dev
+```
+
+### Run Tests
+```bash
+# Run test suite once
+npm run test:run
+
+# Run tests in watch mode
+npm run test
+```
+
+### Build for Production
+```bash
+npm run build
+npm run preview
+```
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
