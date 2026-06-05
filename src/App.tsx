@@ -136,7 +136,7 @@ function App() {
         <div className="flex items-center justify-center min-h-[calc(100vh-60px)] p-4">
           <div className="w-full max-w-[800px] bg-[#333] rounded-xl shadow-[0_4px_10px_rgba(0,0,0,0.3)] p-6 md:p-10">
             <h1 className="text-2xl md:text-3xl font-bold text-center mb-6 md:mb-8 text-white">
-              Hypersonic Reader
+              Quickie Read
             </h1>
 
             {isReading ? (

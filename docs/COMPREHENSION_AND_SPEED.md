@@ -1,4 +1,4 @@
-# Comprehension & Speed: Evidence-Based Design for Hypersonic Reader
+# Comprehension & Speed: Evidence-Based Design for Quickie Read
 
 > **Purpose**: Ground every feature decision in peer-reviewed cognitive science. No pseudoscience, no marketing claims.
 
