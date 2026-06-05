@@ -257,6 +257,16 @@ describe('useReaderStore', () => {
     it('starts with isCompleted false', () => {
       expect(getState().isCompleted).toBe(false)
     })
+
+    it('resets isCompleted when reset is called', () => {
+      getState().markCompleted()
+      expect(getState().isCompleted).toBe(true)
+
+      getState().reset()
+      expect(getState().isCompleted).toBe(false)
+      expect(getState().currentIndex).toBe(0)
+      expect(getState().isPlaying).toBe(false)
+    })
   })
 
 })

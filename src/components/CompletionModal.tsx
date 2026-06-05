@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Brain, BookCheck, RotateCcw, ArrowRight } from 'lucide-react';
 import { useReaderStore } from '../store/useReaderStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -28,6 +28,15 @@ export const CompletionModal: React.FC<CompletionModalProps> = ({
     const [freeRecall, setFreeRecall] = useState('');
     const [rating, setRating] = useState(3);
     const [saved, setSaved] = useState(false);
+
+    // Reset internal state when the modal re-opens for a new reading session
+    useEffect(() => {
+        if (isCompleted) {
+            setFreeRecall('');
+            setRating(3);
+            setSaved(false);
+        }
+    }, [isCompleted]);
 
     if (!isCompleted) return null;
 

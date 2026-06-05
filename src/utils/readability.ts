@@ -28,22 +28,21 @@ export const countSyllables = (word: string): number => {
     const vowelGroups = w.match(/[aeiouy]+/g);
     let count = vowelGroups ? vowelGroups.length : 1;
 
-    // Silent-e: subtract 1 if word ends in 'e' (but not 'le' preceded by a consonant)
-    if (w.endsWith('e') && !w.endsWith('le')) {
-        count = Math.max(1, count - 1);
-    }
-
-    // Common suffixes that add a syllable
-    if (w.endsWith('tion') || w.endsWith('sion')) {
-        // Already counted by vowel groups, no adjustment needed
-    }
-
     // '-ed' endings that don't add a syllable (e.g., "walked" = 1, not 2)
+    // Check this BEFORE silent-e to avoid double-subtraction
+    let edHandled = false;
     if (w.endsWith('ed') && w.length > 3) {
         const beforeEd = w[w.length - 3];
         if (beforeEd !== 't' && beforeEd !== 'd') {
             count = Math.max(1, count - 1);
+            edHandled = true;
         }
+    }
+
+    // Silent-e: subtract 1 if word ends in 'e' (but not 'le' preceded by consonant)
+    // Skip if we already handled '-ed' to avoid double-subtraction
+    if (!edHandled && w.endsWith('e') && !w.endsWith('le')) {
+        count = Math.max(1, count - 1);
     }
 
     return Math.max(1, count);

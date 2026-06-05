@@ -132,7 +132,7 @@ export const useReaderStore = create<ReaderState>()(
 
             togglePlay: () => set((state) => ({ isPlaying: !state.isPlaying })),
 
-            reset: () => set({ currentIndex: 0, isPlaying: false, isRecording: false }),
+            reset: () => set({ currentIndex: 0, isPlaying: false, isRecording: false, isCompleted: false }),
 
             setIsRecording: (isRecording) => set({ isRecording }),
 

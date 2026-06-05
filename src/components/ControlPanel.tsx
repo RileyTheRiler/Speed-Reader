@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
 import { useShallow } from 'zustand/react/shallow';
 import { analyzeReadability } from '../utils/readability';
@@ -82,9 +82,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
 
     const wpmZone = getWpmZone(wpm);
 
-    // Readability analysis (memoized by input text)
+    // Readability analysis — memoized to avoid re-running syllable counting on every render
     const inputText = useReaderStore((s) => s.inputText);
-    const readability = inputText.length > 50 ? analyzeReadability(inputText) : null;
+    const readability = useMemo(
+        () => inputText.length > 50 ? analyzeReadability(inputText) : null,
+        [inputText]
+    );
 
     const toggleFullscreen = useCallback(() => {
         if (!document.fullscreenElement) {
