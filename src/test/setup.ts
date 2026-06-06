@@ -107,3 +107,44 @@ HTMLCanvasElement.prototype.captureStream = vi.fn().mockReturnValue({
   addTrack: vi.fn(),
   removeTrack: vi.fn(),
 })
+
+// Mock Web Speech API (text-to-speech) for bimodal reading tests
+class SpeechSynthesisUtteranceMock {
+  text = ''
+  lang = ''
+  voice: unknown = null
+  rate = 1
+  pitch = 1
+  volume = 1
+  onstart: null | (() => void) = null
+  onend: null | (() => void) = null
+  onerror: null | ((e: unknown) => void) = null
+  onboundary: null | ((e: { name: string; charIndex: number; charLength?: number }) => void) = null
+  constructor(text?: string) {
+    if (text) this.text = text
+  }
+}
+
+const _voices = [
+  { voiceURI: 'en-US-1', name: 'Test English', lang: 'en-US', default: true, localService: true },
+  { voiceURI: 'en-GB-1', name: 'Test British', lang: 'en-GB', default: false, localService: false },
+]
+
+const speechSynthesisMock = {
+  speak: vi.fn(),
+  cancel: vi.fn(),
+  pause: vi.fn(),
+  resume: vi.fn(),
+  getVoices: vi.fn(() => _voices),
+  addEventListener: vi.fn(),
+  removeEventListener: vi.fn(),
+  speaking: false,
+  paused: false,
+  pending: false,
+}
+
+vi.stubGlobal('speechSynthesis', speechSynthesisMock)
+vi.stubGlobal(
+  'SpeechSynthesisUtterance',
+  SpeechSynthesisUtteranceMock as unknown as typeof SpeechSynthesisUtterance,
+)

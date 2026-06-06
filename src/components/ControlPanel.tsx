@@ -491,18 +491,21 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({ onToggleInput }) => 
                             Edit Text
                         </button>
 
-                        <button
-                            onClick={() => setIsRecording(true)}
-                            disabled={isRecording || tokensLength === 0}
-                            className={clsx(
-                                "flex items-center gap-2 px-6 py-2 rounded-lg text-sm text-white transition-all font-semibold shadow-lg",
-                                isRecording ? "bg-red-900 animate-pulse" : "bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/20"
-                            )}
-                            aria-label={isRecording ? "Recording in progress" : "Export video"}
-                        >
-                            <Video size={16} />
-                            {isRecording ? "Recording..." : "Export Video"}
-                        </button>
+                        {/* Export Video records the RSVP canvas, which is only mounted in RSVP mode. */}
+                        {settings.readingMode === 'rsvp' && (
+                            <button
+                                onClick={() => setIsRecording(true)}
+                                disabled={isRecording || tokensLength === 0}
+                                className={clsx(
+                                    "flex items-center gap-2 px-6 py-2 rounded-lg text-sm text-white transition-all font-semibold shadow-lg",
+                                    isRecording ? "bg-red-900 animate-pulse" : "bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/20"
+                                )}
+                                aria-label={isRecording ? "Recording in progress" : "Export video"}
+                            >
+                                <Video size={16} />
+                                {isRecording ? "Recording..." : "Export Video"}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

@@ -20,6 +20,7 @@ Unlike traditional speed reading apps that prioritize speed at the cost of compr
 5. **Auto-WPM Suggestion** (Brysbaert, 2019): Analyzes text complexity using the Flesch–Kincaid and Coleman–Liau formulas to suggest and apply an evidence-based WPM (e.g., slower pacing for academic texts).
 6. **Free Recall & Retrieval Practice** (Dunlosky et al., 2013; Roediger & Karpicke, 2006): Prompts active recall writing and self-rating post-reading (the #1 ranked learning technique with d ≈ 0.51).
 7. **Spaced Repetition Scheduler** (Cepeda et al., 2006/2008): Automatically calculates the next review interval using a local SM-2 algorithm to prompt timely re-reads.
+8. **Bimodal Reading** (Wood et al., 2018; Montali & Lewandowski, 1996): Presents text-to-speech audio simultaneously with strict word-level visual highlighting. Processing text through the visual and auditory channels at once reduces "decoding fatigue," freeing working memory for comprehension. A meta-analysis of 22 TTS studies found a positive weighted effect on comprehension (d ≈ 0.35 overall; d ≈ 0.61 between-subjects), and bimodal formats can raise less-skilled readers' comprehension to match that of average readers. For ADHD readers, synchronized audio-visual input acts as an attention stabilizer.
 
 ---
 
@@ -28,6 +29,7 @@ Unlike traditional speed reading apps that prioritize speed at the cost of compr
 ### Core Reading Modes
 - **RSVP Mode** - Displays words sequentially at the Optimal Recognition Point (ORP) focal point to eliminate saccadic eye movements.
 - **Pacer Mode** - Displays full text with a moving highlight line to guide physical reading.
+- **Bimodal (Listen) Mode** - Reads the text aloud and highlights the exact word being spoken in real time (text-to-speech + synchronized highlighting). Includes a voice picker, adjustable pitch, and an optional **Line Focus** that dims surrounding sentences to reduce distraction. Speed follows the WPM control (200–300 WPM is the focus sweet spot). Uses the browser's built-in Web Speech API — no account or network required — behind a provider interface ready for future cloud/AI voices.
 
 ### Layout & Customization
 - **Dyslexia-Friendly** - Toggle OpenDyslexic font and high-contrast color themes (Midnight, Paper, Solar, Hi-Contrast).

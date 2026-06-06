@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { ReaderCanvas } from './components/ReaderCanvas';
 import { ControlPanel } from './components/ControlPanel';
 import { TextPanel } from './components/TextPanel';
+import { BimodalReader } from './components/BimodalReader';
 import { SettingsModal } from './components/SettingsModal';
 import { FileImport } from './components/FileImport';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -153,6 +154,8 @@ function App() {
 
                 {readingMode === 'pacer' ? (
                   <TextPanel variant="embedded" />
+                ) : readingMode === 'bimodal' ? (
+                  <BimodalReader />
                 ) : (
                   <ReaderCanvas />
                 )}

@@ -1,52 +1,7 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useReaderStore } from '../store/useReaderStore';
-import type { Token } from '../utils/tokenizer';
+import { TokenSpan } from './TokenSpan';
 import { Play, ChevronLeft, ChevronRight } from 'lucide-react';
-
-interface TokenSpanProps {
-    token: Token;
-    index: number;
-    isActive: boolean;
-    onTokenClick: (index: number) => void;
-}
-
-const TokenSpan = memo<TokenSpanProps>(({ token, index, isActive, onTokenClick }) => {
-    const ref = useRef<HTMLSpanElement>(null);
-
-    useEffect(() => {
-        if (isActive && ref.current) {
-            ref.current.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center',
-            });
-        }
-    }, [isActive]);
-
-    return (
-        <span
-            ref={ref}
-            className={`
-                transition-colors duration-100 px-1 rounded cursor-pointer
-                ${isActive ? 'bg-blue-600 text-white font-bold scale-105' : 'hover:bg-[#383838]'}
-            `}
-            onClick={() => onTokenClick(index)}
-            onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onTokenClick(index);
-                }
-            }}
-            role="button"
-            tabIndex={0}
-            aria-current={isActive ? 'true' : undefined}
-            aria-label={`Word ${index + 1}: ${token.text}`}
-        >
-            {token.text}{token.hasSpaceAfter ? ' ' : ''}
-        </span>
-    );
-});
-
-TokenSpan.displayName = 'TokenSpan';
 
 interface TextPanelProps {
     variant?: 'side-panel' | 'embedded';
@@ -104,9 +59,10 @@ export const TextPanel: React.FC<TextPanelProps> = ({ variant = 'side-panel' }) 
         );
     }
 
-    // --- PAUSE OVERLAY (For RSVP Modes) ---
-    // Only show if paused, not in pacer mode, and we have text
-    const showPauseOverlay = !isPlaying && readingMode !== 'pacer' && tokens.length > 0;
+    // --- PAUSE OVERLAY (For RSVP Mode) ---
+    // RSVP flashes single words, so a paused sentence-context overlay helps there.
+    // Pacer and Bimodal already show the full text, so they don't need it.
+    const showPauseOverlay = !isPlaying && readingMode === 'rsvp' && tokens.length > 0;
 
     if (showPauseOverlay) {
         const sentence = getCurrentSentence();
